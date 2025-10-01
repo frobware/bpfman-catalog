@@ -144,10 +144,22 @@ install-cli: build-cli ## Install the bpfman-catalog CLI to /usr/local/bin
 
 .PHONY: test-cli
 test-cli: build-cli ## Test the CLI with a sample catalog
+	@echo "Testing with a sample catalog image..."
+	@echo "Note: Use 'make test-cli-bundle' to test bundle support"
 	$(LOCALBIN)/bpfman-catalog render \
-		--from-catalog quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest \
+		--from-catalog quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream@sha256:17645607b864316918f868913aa3fe740201f84730f6a125e0fe6cd2f627be01 \
 		--output-dir /tmp/test-manifests
 	@echo "Test manifests generated in /tmp/test-manifests"
+	@ls -la /tmp/test-manifests/
+
+.PHONY: test-cli-bundle
+test-cli-bundle: build-cli ## Test the CLI with a sample bundle
+	@echo "Testing with a sample bundle image..."
+	$(LOCALBIN)/bpfman-catalog render \
+		--from-bundle quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream@sha256:910d39b46fd7dc10b250c6e43e1f93b046142830f7e42432708be93f23b2a09b \
+		--output-dir /tmp/test-bundle
+	@echo "Bundle artifacts generated in /tmp/test-bundle"
+	@ls -la /tmp/test-bundle/
 
 ##@ General
 
