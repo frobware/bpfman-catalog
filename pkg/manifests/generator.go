@@ -14,9 +14,17 @@ type GeneratorConfig struct {
 	UseDigestName bool   // Whether to suffix resources with digest
 }
 
+// LabelContext contains labeling information for consistent resource labeling
+type LabelContext struct {
+	ShortDigest    string            // Digest suffix for unique identification
+	StandardLabels map[string]string // Standard labels applied to all resources
+	CustomLabels   map[string]string // Additional custom labels
+}
+
 // Generator creates Kubernetes manifests
 type Generator struct {
-	config GeneratorConfig
+	config       GeneratorConfig
+	labelContext *LabelContext
 }
 
 // NewGenerator creates a new manifest generator
@@ -31,6 +39,177 @@ func NewGenerator(config GeneratorConfig) *Generator {
 	}
 }
 
+// setupLabelContext initializes the label context with digest and standard labels
+func (g *Generator) setupLabelContext(shortDigest string) {
+	standardLabels := map[string]string{
+		"app.kubernetes.io/name":       "bpfman-operator",
+		"app.kubernetes.io/created-by": "bpfman-catalog-cli",
+		"app.kubernetes.io/version":    "latest", // Could be made configurable
+	}
+
+	// Add our digest-based identification labels
+	if shortDigest != "" {
+		standardLabels["bpfman-catalog-cli"] = shortDigest
+		standardLabels["bpfman-catalog-cli/digest"] = shortDigest
+	}
+
+	g.labelContext = &LabelContext{
+		ShortDigest:    shortDigest,
+		StandardLabels: standardLabels,
+		CustomLabels:   make(map[string]string),
+	}
+}
+
+// getMergedLabels returns standard labels merged with any custom labels and additional labels
+func (g *Generator) getMergedLabels(additionalLabels map[string]string) map[string]string {
+	merged := make(map[string]string)
+
+	// Start with standard labels
+	for k, v := range g.labelContext.StandardLabels {
+		merged[k] = v
+	}
+
+	// Add custom labels
+	for k, v := range g.labelContext.CustomLabels {
+		merged[k] = v
+	}
+
+	// Add any additional labels (e.g., resource-specific ones)
+	for k, v := range additionalLabels {
+		merged[k] = v
+	}
+
+	return merged
+}
+
+// NewNamespace creates a namespace manifest with consistent labeling
+func (g *Generator) NewNamespace(baseName string) *Namespace {
+	name := baseName
+	if g.labelContext.ShortDigest != "" {
+		name = fmt.Sprintf("%s-%s", baseName, g.labelContext.ShortDigest)
+	}
+
+	// Namespace-specific labels (like monitoring)
+	additionalLabels := map[string]string{
+		"openshift.io/cluster-monitoring": "true",
+	}
+
+	return &Namespace{
+		TypeMeta: TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Namespace",
+		},
+		ObjectMeta: ObjectMeta{
+			Name:   name,
+			Labels: g.getMergedLabels(additionalLabels),
+		},
+	}
+}
+
+// NewCatalogSource creates a catalog source manifest with consistent labeling
+func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
+	name := "bpfman-catalogsource"
+	if g.labelContext.ShortDigest != "" {
+		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
+	}
+
+	return &CatalogSource{
+		TypeMeta: TypeMeta{
+			APIVersion: "operators.coreos.com/v1alpha1",
+			Kind:       "CatalogSource",
+		},
+		ObjectMeta: ObjectMeta{
+			Name:      name,
+			Namespace: "openshift-marketplace",
+			Labels:    g.getMergedLabels(nil),
+		},
+		Spec: CatalogSourceSpec{
+			SourceType:  "grpc",
+			Image:       meta.Image,
+			DisplayName: fmt.Sprintf("BPFman Operator Catalog (%s)", meta.CatalogType),
+			Publisher:   "bpfman-catalog-cli",
+		},
+	}
+}
+
+// NewOperatorGroup creates an operator group manifest with consistent labeling
+func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
+	name := "bpfman-operatorgroup"
+	if g.labelContext.ShortDigest != "" {
+		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
+	}
+
+	return &OperatorGroup{
+		TypeMeta: TypeMeta{
+			APIVersion: "operators.coreos.com/v1",
+			Kind:       "OperatorGroup",
+		},
+		ObjectMeta: ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    g.getMergedLabels(nil),
+		},
+		Spec: OperatorGroupSpec{},
+	}
+}
+
+// NewSubscription creates a subscription manifest with consistent labeling
+func (g *Generator) NewSubscription(namespace, catalogSourceName string) *Subscription {
+	name := "bpfman-subscription"
+	if g.labelContext.ShortDigest != "" {
+		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
+	}
+
+	return &Subscription{
+		TypeMeta: TypeMeta{
+			APIVersion: "operators.coreos.com/v1alpha1",
+			Kind:       "Subscription",
+		},
+		ObjectMeta: ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    g.getMergedLabels(nil),
+		},
+		Spec: SubscriptionSpec{
+			Channel:             "preview",
+			Name:                "bpfman-operator",
+			Source:              catalogSourceName,
+			SourceNamespace:     "openshift-marketplace",
+			InstallPlanApproval: "Automatic",
+		},
+	}
+}
+
+// NewImageDigestMirrorSet creates an IDMS manifest with consistent labeling
+func (g *Generator) NewImageDigestMirrorSet() *ImageDigestMirrorSet {
+	name := "bpfman-idms"
+	if g.labelContext.ShortDigest != "" {
+		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
+	}
+
+	return &ImageDigestMirrorSet{
+		TypeMeta: TypeMeta{
+			APIVersion: "config.openshift.io/v1",
+			Kind:       "ImageDigestMirrorSet",
+		},
+		ObjectMeta: ObjectMeta{
+			Name:   name,
+			Labels: g.getMergedLabels(nil),
+		},
+		Spec: ImageDigestMirrorSetSpec{
+			ImageDigestMirrors: []ImageDigestMirror{
+				{
+					Source: "registry.redhat.io/openshift4",
+					Mirrors: []string{
+						"registry.stage.redhat.io/openshift4",
+						"registry-proxy.engineering.redhat.com/rh-osbs/openshift4",
+					},
+				},
+			},
+		},
+	}
+}
+
 // GenerateFromCatalog generates manifests for a catalog image
 func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, error) {
 	// Extract metadata from the catalog image
@@ -38,6 +217,13 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 	if err != nil {
 		return nil, fmt.Errorf("extracting catalog metadata: %w", err)
 	}
+
+	// Setup label context for consistent labeling
+	digestSuffix := ""
+	if g.config.UseDigestName && meta.ShortDigest != "" {
+		digestSuffix = meta.ShortDigest
+	}
+	g.setupLabelContext(digestSuffix)
 
 	// Create catalog metadata for manifest generation
 	catalogMeta := CatalogMetadata{
@@ -51,28 +237,22 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 	// Generate all manifests
 	manifestSet := &ManifestSet{}
 
-	// Determine if we should use digest suffix
-	digestSuffix := ""
-	if g.config.UseDigestName && meta.ShortDigest != "" {
-		digestSuffix = meta.ShortDigest
-	}
-
 	// Generate namespace
-	manifestSet.Namespace = NewNamespace(g.config.Namespace, digestSuffix)
+	manifestSet.Namespace = g.NewNamespace(g.config.Namespace)
 
 	// Generate IDMS
-	manifestSet.IDMS = NewImageDigestMirrorSet(digestSuffix)
+	manifestSet.IDMS = g.NewImageDigestMirrorSet()
 
 	// Generate CatalogSource
-	manifestSet.CatalogSource = NewCatalogSource(catalogMeta)
+	manifestSet.CatalogSource = g.NewCatalogSource(catalogMeta)
 
 	// Generate OperatorGroup (uses the potentially suffixed namespace name)
 	namespaceName := manifestSet.Namespace.ObjectMeta.Name
-	manifestSet.OperatorGroup = NewOperatorGroup(namespaceName, digestSuffix)
+	manifestSet.OperatorGroup = g.NewOperatorGroup(namespaceName)
 
 	// Generate Subscription
 	catalogSourceName := manifestSet.CatalogSource.ObjectMeta.Name
-	manifestSet.Subscription = NewSubscription(namespaceName, catalogSourceName, digestSuffix)
+	manifestSet.Subscription = g.NewSubscription(namespaceName, catalogSourceName)
 
 	return manifestSet, nil
 }
