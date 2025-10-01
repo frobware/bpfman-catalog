@@ -21,14 +21,12 @@ func New(outputDir string) *ManifestWriter {
 	}
 }
 
-// WriteAll writes all manifests in a ManifestSet to files
+// WriteAll writes all manifests in a ManifestSet to files.
 func (w *ManifestWriter) WriteAll(manifestSet *manifests.ManifestSet) error {
-	// Create output directory if it doesn't exist
 	if err := os.MkdirAll(w.outputDir, 0755); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
-	// Write each manifest
 	if manifestSet.Namespace != nil {
 		if err := w.writeManifest("00-namespace.yaml", manifestSet.Namespace); err != nil {
 			return fmt.Errorf("writing namespace: %w", err)
@@ -77,14 +75,12 @@ func (w *ManifestWriter) writeManifest(filename string, manifest interface{}) er
 	return nil
 }
 
-// WriteSingle writes a single manifest to a specific file
+// WriteSingle writes a single manifest to a specific file.
 func (w *ManifestWriter) WriteSingle(filename string, manifest interface{}) error {
-	// Create output directory if it doesn't exist
 	if err := os.MkdirAll(w.outputDir, 0755); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
-	// Handle byte slices directly (for pre-generated content)
 	if data, ok := manifest.([]byte); ok {
 		path := filepath.Join(w.outputDir, filename)
 		if err := os.WriteFile(path, data, 0644); err != nil {

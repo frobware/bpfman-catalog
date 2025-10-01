@@ -51,12 +51,10 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 		slog.Bool("from_catalog", r.FromCatalog != ""),
 		slog.Bool("from_bundle", r.FromBundle != ""))
 
-	// Validate inputs
 	if r.FromCatalog == "" && r.FromBundle == "" {
 		return fmt.Errorf("either --from-catalog or --from-bundle must be specified")
 	}
 
-	// Create generator
 	config := manifests.GeneratorConfig{
 		Namespace:     "bpfman", // Default namespace
 		UseDigestName: true,
@@ -68,14 +66,12 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 
 		logger.Debug("generating manifests from catalog", slog.String("catalog", r.FromCatalog))
 
-		// Generate manifests
 		manifestSet, err := generator.GenerateFromCatalog(globals.Context)
 		if err != nil {
 			logger.Error("failed to generate manifests", slog.String("error", err.Error()))
 			return fmt.Errorf("generating manifests: %w", err)
 		}
 
-		// Write manifests
 		writer := writer.New(r.OutputDir)
 		if err := writer.WriteAll(manifestSet); err != nil {
 			logger.Error("failed to write manifests", slog.String("error", err.Error()))
@@ -94,7 +90,6 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 	if r.FromBundle != "" {
 		logger.Debug("generating catalog artifacts from bundle", slog.String("bundle", r.FromBundle))
 
-		// Generate bundle artifacts
 		gen := bundle.NewGenerator(r.FromBundle, "preview")
 		artifacts, err := gen.Generate(globals.Context)
 		if err != nil {
@@ -102,22 +97,18 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 			return fmt.Errorf("generating bundle artifacts: %w", err)
 		}
 
-		// Write artifacts to files
 		writer := writer.New(r.OutputDir)
 
-		// Write FBC template
 		if err := writer.WriteSingle("fbc-template.yaml", []byte(artifacts.FBCTemplate)); err != nil {
 			return fmt.Errorf("writing FBC template: %w", err)
 		}
 
-		// Write rendered catalog if available
 		if artifacts.CatalogYAML != "" {
 			if err := writer.WriteSingle("catalog.yaml", []byte(artifacts.CatalogYAML)); err != nil {
 				return fmt.Errorf("writing catalog: %w", err)
 			}
 		}
 
-		// Write Dockerfile
 		if err := writer.WriteSingle("Dockerfile.catalog", []byte(artifacts.Dockerfile)); err != nil {
 			return fmt.Errorf("writing Dockerfile: %w", err)
 		}
@@ -126,7 +117,6 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 			slog.String("output_dir", r.OutputDir),
 			slog.Bool("catalog_rendered", artifacts.CatalogYAML != ""))
 
-		// Print instructions
 		fmt.Println(artifacts.Instructions)
 		return nil
 	}
@@ -167,43 +157,34 @@ func (s *StatusCmd) Run(globals *GlobalContext) error {
 func main() {
 	var cli CLI
 
-	// Setup context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Parse command line first to get log settings
 	kongCtx := kong.Parse(&cli,
 		kong.Name("bpfman-catalog"),
 		kong.Description("Deploy and manage bpfman operator catalogs on OpenShift"),
 		kong.UsageOnError(),
 	)
 
-	// Setup logging based on CLI flags
 	logger := setupLogger(cli.LogLevel, cli.LogFormat)
 
-	// Handle signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Create global context for dependency injection
 	globals := &GlobalContext{
 		Context: ctx,
 		Logger:  logger,
 	}
 
-	// Run command in goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		// Call the command with global context
 		errChan <- kongCtx.Run(globals)
 	}()
 
-	// Wait for completion or signal
 	select {
 	case sig := <-sigChan:
 		logger.Info("received signal", slog.String("signal", sig.String()))
 		cancel()
-		// Wait for graceful shutdown
 		if err := <-errChan; err != nil {
 			logger.Error("command failed", slog.String("error", err.Error()))
 			os.Exit(1)
@@ -217,7 +198,6 @@ func main() {
 }
 
 func setupLogger(level, format string) *slog.Logger {
-	// Parse log level
 	logLevel := parseLogLevel(level)
 
 	opts := &slog.HandlerOptions{
@@ -225,7 +205,6 @@ func setupLogger(level, format string) *slog.Logger {
 		AddSource: logLevel == slog.LevelDebug,
 	}
 
-	// Choose handler based on format
 	var handler slog.Handler
 	if format == "json" {
 		handler = slog.NewJSONHandler(os.Stderr, opts)
