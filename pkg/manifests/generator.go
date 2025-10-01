@@ -231,7 +231,6 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 		Digest:      string(meta.Digest),
 		ShortDigest: meta.ShortDigest,
 		CatalogType: meta.CatalogType,
-		Version:     meta.Version,
 	}
 
 	// Generate all manifests

@@ -87,7 +87,6 @@ type CatalogMetadata struct {
 	Digest      string // Full digest
 	ShortDigest string // Short digest for naming
 	CatalogType string // Type of catalog (e.g., catalog-ystream)
-	Version     string // Version extracted from image
 }
 
 // ManifestSet contains all manifests needed for deployment
