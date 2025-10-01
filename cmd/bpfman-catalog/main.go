@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
+	"github.com/openshift/bpfman-catalog/pkg/bundle"
 	"github.com/openshift/bpfman-catalog/pkg/manifests"
 	"github.com/openshift/bpfman-catalog/pkg/writer"
 )
@@ -91,7 +92,43 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 	}
 
 	if r.FromBundle != "" {
-		return fmt.Errorf("bundle support not yet implemented")
+		logger.Debug("generating catalog artifacts from bundle", slog.String("bundle", r.FromBundle))
+
+		// Generate bundle artifacts
+		gen := bundle.NewGenerator(r.FromBundle, "preview")
+		artifacts, err := gen.Generate(globals.Context)
+		if err != nil {
+			logger.Error("failed to generate bundle artifacts", slog.String("error", err.Error()))
+			return fmt.Errorf("generating bundle artifacts: %w", err)
+		}
+
+		// Write artifacts to files
+		writer := writer.New(r.OutputDir)
+
+		// Write FBC template
+		if err := writer.WriteSingle("fbc-template.yaml", []byte(artifacts.FBCTemplate)); err != nil {
+			return fmt.Errorf("writing FBC template: %w", err)
+		}
+
+		// Write rendered catalog if available
+		if artifacts.CatalogYAML != "" {
+			if err := writer.WriteSingle("catalog.yaml", []byte(artifacts.CatalogYAML)); err != nil {
+				return fmt.Errorf("writing catalog: %w", err)
+			}
+		}
+
+		// Write Dockerfile
+		if err := writer.WriteSingle("Dockerfile.catalog", []byte(artifacts.Dockerfile)); err != nil {
+			return fmt.Errorf("writing Dockerfile: %w", err)
+		}
+
+		logger.Info("bundle artifacts generated successfully",
+			slog.String("output_dir", r.OutputDir),
+			slog.Bool("catalog_rendered", artifacts.CatalogYAML != ""))
+
+		// Print instructions
+		fmt.Println(artifacts.Instructions)
+		return nil
 	}
 
 	return nil

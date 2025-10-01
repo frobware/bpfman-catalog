@@ -84,5 +84,14 @@ func (w *ManifestWriter) WriteSingle(filename string, manifest interface{}) erro
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
+	// Handle byte slices directly (for pre-generated content)
+	if data, ok := manifest.([]byte); ok {
+		path := filepath.Join(w.outputDir, filename)
+		if err := os.WriteFile(path, data, 0644); err != nil {
+			return fmt.Errorf("writing file %s: %w", path, err)
+		}
+		return nil
+	}
+
 	return w.writeManifest(filename, manifest)
 }
