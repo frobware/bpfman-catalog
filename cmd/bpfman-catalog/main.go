@@ -23,9 +23,7 @@ type GlobalContext struct {
 
 // CLI defines the command-line interface structure
 type CLI struct {
-	Render  RenderCmd  `cmd:"" help:"Generate Kubernetes manifests for bpfman operator deployment"`
-	Install InstallCmd `cmd:"" help:"Install bpfman operator directly to cluster"`
-	Status  StatusCmd  `cmd:"" help:"Check bpfman operator installation status"`
+	Render RenderCmd `cmd:"" help:"Generate Kubernetes manifests for bpfman operator deployment"`
 
 	// Global flags
 	LogLevel  string `env:"LOG_LEVEL" default:"info" help:"Log level (debug, info, warn, error)"`
@@ -42,6 +40,7 @@ type ImageSource struct {
 type RenderCmd struct {
 	ImageSource
 	OutputDir string `type:"path" default:"./manifests" help:"Output directory for generated manifests"`
+	OmpBin    string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
 }
 
 func (r *RenderCmd) Run(globals *GlobalContext) error {
@@ -90,7 +89,14 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 	if r.FromBundle != "" {
 		logger.Debug("generating catalog artifacts from bundle", slog.String("bundle", r.FromBundle))
 
-		gen := bundle.NewGenerator(r.FromBundle, "preview")
+		var gen *bundle.Generator
+		if r.OmpBin != "" {
+			logger.Debug("using external opm binary", slog.String("omp_bin", r.OmpBin))
+			gen = bundle.NewGeneratorWithOmp(r.FromBundle, "preview", r.OmpBin)
+		} else {
+			gen = bundle.NewGenerator(r.FromBundle, "preview")
+		}
+
 		artifacts, err := gen.Generate(globals.Context)
 		if err != nil {
 			logger.Error("failed to generate bundle artifacts", slog.String("error", err.Error()))
@@ -122,36 +128,6 @@ func (r *RenderCmd) Run(globals *GlobalContext) error {
 	}
 
 	return nil
-}
-
-// InstallCmd installs the operator directly to the cluster
-type InstallCmd struct {
-	ImageSource
-	Namespace string `default:"bpfman" help:"Target namespace"`
-}
-
-func (i *InstallCmd) Run(globals *GlobalContext) error {
-	logger := globals.Logger
-	logger.Info("installing operator",
-		slog.String("namespace", i.Namespace),
-		slog.Bool("from_catalog", i.FromCatalog != ""),
-		slog.Bool("from_bundle", i.FromBundle != ""))
-
-	// TODO: Implement install logic
-	return fmt.Errorf("install not yet implemented")
-}
-
-// StatusCmd checks the installation status
-type StatusCmd struct {
-	Namespace string `default:"bpfman" help:"Target namespace"`
-}
-
-func (s *StatusCmd) Run(globals *GlobalContext) error {
-	logger := globals.Logger
-	logger.Debug("checking status", slog.String("namespace", s.Namespace))
-
-	// TODO: Implement status logic
-	return fmt.Errorf("status not yet implemented")
 }
 
 func main() {

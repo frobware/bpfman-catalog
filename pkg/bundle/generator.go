@@ -19,6 +19,7 @@ type Artifacts struct {
 type Generator struct {
 	bundleImage string
 	channel     string
+	ompBinPath  string // Optional path to external opm binary
 }
 
 // NewGenerator creates a new bundle generator
@@ -29,6 +30,18 @@ func NewGenerator(bundleImage, channel string) *Generator {
 	return &Generator{
 		bundleImage: bundleImage,
 		channel:     channel,
+	}
+}
+
+// NewGeneratorWithOpm creates a new bundle generator with external opm binary
+func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
+	if channel == "" {
+		channel = "preview"
+	}
+	return &Generator{
+		bundleImage: bundleImage,
+		channel:     channel,
+		ompBinPath:  ompBinPath,
 	}
 }
 
@@ -51,8 +64,14 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 		Dockerfile:  GenerateCatalogDockerfile(),
 	}
 
-	// Render the catalog using the OPM library
-	catalogYAML, err := RenderCatalog(ctx, fbcTemplate)
+	// Render the catalog using either binary or library
+	var catalogYAML string
+	if g.ompBinPath != "" {
+		catalogYAML, err = RenderCatalogWithBinary(ctx, fbcTemplate, g.ompBinPath)
+	} else {
+		catalogYAML, err = RenderCatalog(ctx, fbcTemplate)
+	}
+
 	if err != nil {
 		// If rendering fails, provide instructions for manual rendering
 		artifacts.Instructions = GenerateBuildInstructions(".", true)
