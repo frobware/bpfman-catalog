@@ -42,10 +42,10 @@ All resources created by bpfman-catalog are labeled for easy identification and 
 
 ```bash
 # Find all resources from a specific deployment (using digest from image)
-kubectl get all -l bpfman-catalog-cli=17645607
+kubectl get all -l bpfman-catalog-cli=12345678
 
 # Clean up everything from a deployment
-kubectl delete all -l bpfman-catalog-cli=17645607
+kubectl delete all -l bpfman-catalog-cli=12345678
 
 # Find all resources created by the tool across all deployments
 kubectl get all -l app.kubernetes.io/created-by=bpfman-catalog-cli
@@ -54,36 +54,36 @@ kubectl get all -l app.kubernetes.io/created-by=bpfman-catalog-cli
 kubectl get all -l app.kubernetes.io/name=bpfman-operator
 
 # Check deployment status
-kubectl get catalogsource -l bpfman-catalog-cli=17645607
-kubectl get subscription -l bpfman-catalog-cli=17645607
+kubectl get catalogsource -l bpfman-catalog-cli=12345678
+kubectl get subscription -l bpfman-catalog-cli=12345678
 ```
 
 ### Resource Names
 
-All resources follow a consistent naming pattern with digest suffixes:
-- Namespace: `bpfman-17645607`
-- CatalogSource: `bpfman-catalogsource-17645607`
-- OperatorGroup: `bpfman-operatorgroup-17645607`
-- Subscription: `bpfman-subscription-17645607`
-- ImageDigestMirrorSet: `bpfman-idms-17645607`
+All resources follow a consistent naming pattern with SHA digest suffixes:
+- Namespace: `bpfman-sha-12345678`
+- CatalogSource: `bpfman-catalogsource-sha-12345678`
+- OperatorGroup: `bpfman-operatorgroup-sha-12345678`
+- Subscription: `bpfman-subscription-sha-12345678`
+- ImageDigestMirrorSet: `bpfman-idms-sha-12345678`
 
-The digest suffix (first 8 characters of the image SHA256) ensures unique resource names when deploying multiple versions.
+The `-sha-` prefix clearly indicates the suffix is derived from the image SHA256 digest (first 8 characters), ensuring unique resource names when deploying multiple versions.
 
 ### Troubleshooting
 
 ```bash
 # Check catalog source status
-kubectl get catalogsource bpfman-catalogsource-17645607 -o yaml
+kubectl get catalogsource bpfman-catalogsource-sha-12345678 -o yaml
 
 # Check subscription status and installed CSV
-kubectl get subscription bpfman-subscription-17645607 -o yaml
+kubectl get subscription bpfman-subscription-sha-12345678 -o yaml
 kubectl get csv -l app.kubernetes.io/name=bpfman-operator
 
 # Check operator pod logs
-kubectl logs -l app.kubernetes.io/name=bpfman-operator -n bpfman-17645607
+kubectl logs -l app.kubernetes.io/name=bpfman-operator -n bpfman-sha-12345678
 
 # Check catalog pod logs
-kubectl logs -l olm.catalogSource=bpfman-catalogsource-17645607 -n openshift-marketplace
+kubectl logs -l olm.catalogSource=bpfman-catalogsource-sha-12345678 -n openshift-marketplace
 ```
 
 ## Building

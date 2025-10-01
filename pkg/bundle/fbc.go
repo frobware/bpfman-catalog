@@ -65,7 +65,7 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 	}
 
 	if digestSuffix != "" {
-		channel = channel + "-" + digestSuffix
+		channel = channel + "-sha-" + digestSuffix
 	}
 
 	// This is a simplified version - in production you might inspect the bundle
