@@ -74,11 +74,11 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 
 	if err != nil {
 		// If rendering fails, provide instructions for manual rendering
-		artifacts.Instructions = GenerateBuildInstructions(".", true)
+		artifacts.Instructions = GenerateBuildInstructions(".", true, g.bundleImage)
 		artifacts.Instructions = fmt.Sprintf("WARNING: Could not render catalog automatically: %v\n\n%s", err, artifacts.Instructions)
 	} else {
 		artifacts.CatalogYAML = catalogYAML
-		artifacts.Instructions = GenerateBuildInstructions(".", false)
+		artifacts.Instructions = GenerateBuildInstructions(".", false, g.bundleImage)
 	}
 
 	return artifacts, nil

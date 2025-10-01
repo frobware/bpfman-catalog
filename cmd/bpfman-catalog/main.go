@@ -23,7 +23,7 @@ type GlobalContext struct {
 
 // CLI defines the command-line interface structure
 type CLI struct {
-	Render RenderCmd `cmd:"" help:"Generate Kubernetes manifests for bpfman operator deployment"`
+	GenerateManifests GenerateManifestsCmd `cmd:"generate-manifests" help:"Generate Kubernetes manifests for bpfman operator deployment"`
 
 	// Global flags
 	LogLevel  string `env:"LOG_LEVEL" default:"info" help:"Log level (debug, info, warn, error)"`
@@ -36,14 +36,14 @@ type ImageSource struct {
 	FromBundle  string `xor:"source" help:"Deploy from bundle image reference"`
 }
 
-// RenderCmd generates manifests without applying them
-type RenderCmd struct {
+// GenerateManifestsCmd generates manifests without applying them
+type GenerateManifestsCmd struct {
 	ImageSource
 	OutputDir string `type:"path" default:"./manifests" help:"Output directory for generated manifests"`
 	OmpBin    string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
 }
 
-func (r *RenderCmd) Run(globals *GlobalContext) error {
+func (r *GenerateManifestsCmd) Run(globals *GlobalContext) error {
 	logger := globals.Logger
 	logger.Info("rendering manifests",
 		slog.String("output_dir", r.OutputDir),
