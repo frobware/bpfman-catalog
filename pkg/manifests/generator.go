@@ -103,7 +103,7 @@ func (g *Generator) NewNamespace(baseName string) *Namespace {
 			Kind:       "Namespace",
 		},
 		ObjectMeta: ObjectMeta{
-			Name:   g.generateResourceName(baseName),
+			Name:   baseName, // Use baseName directly, no digest suffix for namespace
 			Labels: g.getMergedLabels(additionalLabels),
 		},
 	}
@@ -147,7 +147,7 @@ func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
 }
 
 // NewSubscription creates a subscription manifest with consistent labeling
-func (g *Generator) NewSubscription(namespace, catalogSourceName string) *Subscription {
+func (g *Generator) NewSubscription(namespace, catalogSourceName, channel string) *Subscription {
 	return &Subscription{
 		TypeMeta: TypeMeta{
 			APIVersion: "operators.coreos.com/v1alpha1",
@@ -159,7 +159,7 @@ func (g *Generator) NewSubscription(namespace, catalogSourceName string) *Subscr
 			Labels:    g.getMergedLabels(nil),
 		},
 		Spec: SubscriptionSpec{
-			Channel:             "preview",
+			Channel:             channel,
 			Name:                "bpfman-operator",
 			Source:              catalogSourceName,
 			SourceNamespace:     "openshift-marketplace",
@@ -232,9 +232,10 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 	namespaceName := manifestSet.Namespace.ObjectMeta.Name
 	manifestSet.OperatorGroup = g.NewOperatorGroup(namespaceName)
 
-	// Generate Subscription
+	// Generate Subscription - use hardcoded preview channel for simplicity
 	catalogSourceName := manifestSet.CatalogSource.ObjectMeta.Name
-	manifestSet.Subscription = g.NewSubscription(namespaceName, catalogSourceName)
+	channel := "preview"
+	manifestSet.Subscription = g.NewSubscription(namespaceName, catalogSourceName, channel)
 
 	return manifestSet, nil
 }
