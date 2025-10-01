@@ -77,14 +77,19 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 	return manifestSet, nil
 }
 
-// GenerateFromBundle generates manifests for a bundle image
-func (g *Generator) GenerateFromBundle(ctx context.Context) (*ManifestSet, error) {
-	// TODO: Implement bundle-to-catalog conversion
-	// This will:
-	// 1. Generate an FBC template
-	// 2. Call opm to render the catalog
-	// 3. Build a catalog image locally
-	// 4. Then generate manifests as with catalog
+// GenerateFromBundle generates artifacts for a bundle image
+// This creates FBC template, catalog.yaml, and Dockerfile but does NOT build the image
+func (g *Generator) GenerateFromBundle(ctx context.Context) (*BundleArtifacts, error) {
+	// For bundles, we generate artifacts for the user to build their own catalog
+	// We don't generate deployment manifests directly since they need to build and push first
 
-	return nil, fmt.Errorf("bundle support not yet implemented")
+	return nil, fmt.Errorf("bundle support should use GenerateBundleArtifacts instead")
+}
+
+// BundleArtifacts contains generated files for building a catalog from a bundle
+type BundleArtifacts struct {
+	FBCTemplate  string // FBC template YAML
+	CatalogYAML  string // Rendered catalog (if opm is available)
+	Dockerfile   string // Dockerfile for building catalog image
+	Instructions string // Build and deploy instructions
 }
