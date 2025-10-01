@@ -45,7 +45,7 @@ type GenerateManifestsCmd struct {
 
 func (r *GenerateManifestsCmd) Run(globals *GlobalContext) error {
 	logger := globals.Logger
-	logger.Info("rendering manifests",
+	logger.Debug("rendering manifests",
 		slog.String("output_dir", r.OutputDir),
 		slog.Bool("from_catalog", r.FromCatalog != ""),
 		slog.Bool("from_bundle", r.FromBundle != ""))
@@ -67,17 +67,17 @@ func (r *GenerateManifestsCmd) Run(globals *GlobalContext) error {
 
 		manifestSet, err := generator.GenerateFromCatalog(globals.Context)
 		if err != nil {
-			logger.Error("failed to generate manifests", slog.String("error", err.Error()))
+			logger.Debug("failed to generate manifests", slog.String("error", err.Error()))
 			return fmt.Errorf("generating manifests: %w", err)
 		}
 
 		writer := writer.New(r.OutputDir)
 		if err := writer.WriteAll(manifestSet); err != nil {
-			logger.Error("failed to write manifests", slog.String("error", err.Error()))
+			logger.Debug("failed to write manifests", slog.String("error", err.Error()))
 			return fmt.Errorf("writing manifests: %w", err)
 		}
 
-		logger.Info("manifests generated successfully",
+		logger.Debug("manifests generated successfully",
 			slog.String("output_dir", r.OutputDir),
 			slog.String("catalog", manifestSet.CatalogSource.ObjectMeta.Name))
 
@@ -99,7 +99,7 @@ func (r *GenerateManifestsCmd) Run(globals *GlobalContext) error {
 
 		artifacts, err := gen.Generate(globals.Context)
 		if err != nil {
-			logger.Error("failed to generate bundle artifacts", slog.String("error", err.Error()))
+			logger.Debug("failed to generate bundle artifacts", slog.String("error", err.Error()))
 			return fmt.Errorf("generating bundle artifacts: %w", err)
 		}
 
@@ -119,7 +119,7 @@ func (r *GenerateManifestsCmd) Run(globals *GlobalContext) error {
 			return fmt.Errorf("writing Dockerfile: %w", err)
 		}
 
-		logger.Info("bundle artifacts generated successfully",
+		logger.Debug("bundle artifacts generated successfully",
 			slog.String("output_dir", r.OutputDir),
 			slog.Bool("catalog_rendered", artifacts.CatalogYAML != ""))
 
@@ -159,15 +159,17 @@ func main() {
 
 	select {
 	case sig := <-sigChan:
-		logger.Info("received signal", slog.String("signal", sig.String()))
+		logger.Debug("received signal", slog.String("signal", sig.String()))
 		cancel()
 		if err := <-errChan; err != nil {
-			logger.Error("command failed", slog.String("error", err.Error()))
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			logger.Debug("command failed", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
 	case err := <-errChan:
 		if err != nil {
-			logger.Error("command failed", slog.String("error", err.Error()))
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			logger.Debug("command failed", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
 	}
