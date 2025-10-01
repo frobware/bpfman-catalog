@@ -122,6 +122,33 @@ clean-tools: ## Remove downloaded tools.
 .PHONY: clean
 clean: clean-generated-catalogs clean-tools ## Remove all generated files and tools.
 
+##@ CLI Tool
+
+.PHONY: fmt
+fmt: ## Run go fmt on the code
+	go fmt ./...
+
+.PHONY: vet
+vet: ## Run go vet on the code
+	go vet ./...
+
+.PHONY: build-cli
+build-cli: fmt vet ## Build the bpfman-catalog CLI tool
+	go build -o $(LOCALBIN)/bpfman-catalog ./cmd/bpfman-catalog
+
+.PHONY: install-cli
+install-cli: build-cli ## Install the bpfman-catalog CLI to /usr/local/bin
+	@echo "Installing bpfman-catalog to /usr/local/bin (may require sudo)"
+	@cp $(LOCALBIN)/bpfman-catalog /usr/local/bin/bpfman-catalog 2>/dev/null || \
+		sudo cp $(LOCALBIN)/bpfman-catalog /usr/local/bin/bpfman-catalog
+
+.PHONY: test-cli
+test-cli: build-cli ## Test the CLI with a sample catalog
+	$(LOCALBIN)/bpfman-catalog render \
+		--from-catalog quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest \
+		--output-dir /tmp/test-manifests
+	@echo "Test manifests generated in /tmp/test-manifests"
+
 ##@ General
 
 .PHONY: all
