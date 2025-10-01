@@ -18,7 +18,6 @@ type ImageMetadata struct {
 	Digest      digest.Digest // e.g., sha256:abc123...
 	ShortDigest string        // First 8 chars of digest
 	CatalogType string        // e.g., catalog-ystream, catalog-zstream
-	Version     string        // e.g., 4.19, 4.20
 }
 
 // ExtractMetadata extracts metadata from an image reference.
@@ -50,8 +49,6 @@ func ExtractMetadata(ctx context.Context, imageRef string) (*ImageMetadata, erro
 			meta.CatalogType = strings.Join(parts[0:2], "-") // e.g., "catalog-ystream"
 		}
 	}
-
-	meta.Version = extractVersion(meta.Repository, meta.Tag)
 
 	return meta, nil
 }
@@ -110,32 +107,4 @@ func fetchDigest(ctx context.Context, imageRef string, meta *ImageMetadata) erro
 	// For now, generate a placeholder digest or skip if no digest in reference
 	// This allows the tool to work without pulling from registry
 	return fmt.Errorf("digest fetching temporarily disabled - please use image references with explicit digests (@sha256:...)")
-}
-
-// extractVersion attempts to extract version from repository or tag.
-func extractVersion(repository, tag string) string {
-	if tag != "" {
-		if strings.HasPrefix(tag, "v") {
-			return strings.TrimPrefix(tag, "v")
-		}
-		parts := strings.Split(tag, ".")
-		if len(parts) >= 2 {
-			return tag
-		}
-	}
-
-	if strings.Contains(repository, "ocp4-") {
-		parts := strings.Split(repository, "-")
-		for i, part := range parts {
-			if strings.HasPrefix(part, "ocp4") && i+1 < len(parts) {
-				version := strings.TrimPrefix(part, "ocp")
-				if i+1 < len(parts) {
-					return version + "." + parts[i+1]
-				}
-				return version
-			}
-		}
-	}
-
-	return ""
 }
