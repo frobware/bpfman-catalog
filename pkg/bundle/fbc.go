@@ -54,19 +54,16 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 		return nil, fmt.Errorf("bundle image cannot be empty")
 	}
 
-	// Extract digest suffix from bundle image for unique naming
 	digestSuffix := extractDigestSuffix(bundleImage)
 
 	if channel == "" {
-		channel = "preview" // Default channel for development
+		channel = "preview"
 	}
 
-	// Add digest suffix to channel name for uniqueness
 	if digestSuffix != "" {
 		channel = channel + "-" + digestSuffix
 	}
 
-	// Extract a simple name from the bundle image
 	// This is a simplified version - in production you might inspect the bundle
 	bundleName := "bpfman-operator.vnext"
 	packageName := "bpfman-operator"
@@ -98,28 +95,23 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 	return template, nil
 }
 
-// RenderCatalog uses the OPM library to render the FBC template into a full catalog
+// RenderCatalog uses the OPM library to render the FBC template into a full catalog.
 func RenderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error) {
-	// Marshal the template to YAML
 	templateYAML, err := yaml.Marshal(fbcTemplate)
 	if err != nil {
 		return "", fmt.Errorf("marshaling FBC template: %w", err)
 	}
 
-	// Create a logger (using a minimal logger for now)
 	logger := logrus.NewEntry(logrus.New())
-	logger.Logger.SetLevel(logrus.WarnLevel) // Reduce noise
+	logger.Logger.SetLevel(logrus.WarnLevel)
 
-	// Create a registry using exec (podman/docker) for pulling bundle images
 	registry, err := execregistry.NewRegistry(containertools.PodmanTool, logger)
 	if err != nil {
 		return "", fmt.Errorf("creating image registry: %w", err)
 	}
 
-	// Create the basic template with a render function for bundles
 	template := basic.Template{
 		RenderBundle: func(ctx context.Context, image string) (*declcfg.DeclarativeConfig, error) {
-			// Create a render action for the bundle image
 			r := action.Render{
 				Refs:           []string{image},
 				Registry:       registry,
@@ -131,14 +123,12 @@ func RenderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error
 		},
 	}
 
-	// Render the template
 	reader := bytes.NewReader(templateYAML)
 	cfg, err := template.Render(ctx, reader)
 	if err != nil {
 		return "", fmt.Errorf("rendering template: %w", err)
 	}
 
-	// Write the result as YAML
 	var buf bytes.Buffer
 	if err := declcfg.WriteYAML(*cfg, &buf); err != nil {
 		return "", fmt.Errorf("writing catalog YAML: %w", err)
