@@ -15,14 +15,14 @@ This tool deploys bpfman operator versions from pre-release catalogs or custom b
 ### Deploy from Catalog Image
 ```bash
 # Deploy from a pre-built catalog image
-bpfman-catalog render --from-catalog quay.io/namespace/catalog@sha256:abc123... --output-dir ./deploy
+bpfman-catalog generate-manifests --from-catalog quay.io/namespace/catalog@sha256:abc123... --output-dir ./deploy
 kubectl apply -f ./deploy
 ```
 
 ### Generate Catalog from Bundle
 ```bash
 # Generate catalog artifacts from a bundle image
-bpfman-catalog render --from-bundle quay.io/namespace/bundle@sha256:def456... --output-dir ./build
+bpfman-catalog generate-manifests --from-bundle quay.io/namespace/bundle@sha256:def456... --output-dir ./build
 
 # Build and push the catalog image
 cd ./build
@@ -30,7 +30,7 @@ podman build -f Dockerfile.catalog -t my-catalog:dev .
 podman push my-catalog:dev ttl.sh/my-catalog:dev
 
 # Generate deployment manifests
-bpfman-catalog render --from-catalog ttl.sh/my-catalog:dev --output-dir ./deploy
+bpfman-catalog generate-manifests --from-catalog ttl.sh/my-catalog:dev --output-dir ./deploy
 kubectl apply -f ./deploy
 ```
 

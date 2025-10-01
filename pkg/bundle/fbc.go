@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/operator-framework/operator-registry/alpha/action"
 	"github.com/operator-framework/operator-registry/alpha/action/migrations"
 	"github.com/operator-framework/operator-registry/alpha/declcfg"
@@ -180,8 +182,15 @@ CMD ["serve", "/configs"]
 }
 
 // GenerateBuildInstructions generates instructions for the user
-func GenerateBuildInstructions(outputDir string, includeOpmStep bool) string {
+func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImage string) string {
 	var b strings.Builder
+	imageUUID := uuid.New().String()
+	digestSuffix := extractDigestSuffix(bundleImage)
+
+	localTag := "bpfman-catalog"
+	if digestSuffix != "" {
+		localTag = fmt.Sprintf("bpfman-catalog-sha-%s", digestSuffix)
+	}
 
 	b.WriteString("Bundle artifacts generated successfully!\n\n")
 	b.WriteString("Generated files:\n")
@@ -204,18 +213,21 @@ func GenerateBuildInstructions(outputDir string, includeOpmStep bool) string {
 
 	b.WriteString(fmt.Sprintf("%d. Build the catalog image:\n", step))
 	b.WriteString(fmt.Sprintf("   cd %s\n", outputDir))
-	b.WriteString("   podman build -f Dockerfile.catalog -t my-catalog:dev .\n\n")
+	b.WriteString(fmt.Sprintf("   podman build -f Dockerfile.catalog -t %s .\n\n", localTag))
 	step++
 
 	b.WriteString(fmt.Sprintf("%d. Push to a registry:\n", step))
-	b.WriteString("   # Option 1: Push to ttl.sh (anonymous, expires in 24h)\n")
-	b.WriteString("   podman push my-catalog:dev ttl.sh/my-catalog:dev\n\n")
+	b.WriteString("   # Option 1: Push to ttl.sh (anonymous, expires in 1h)\n")
+	b.WriteString(fmt.Sprintf("   podman tag %s ttl.sh/%s:1h\n", localTag, imageUUID))
+	b.WriteString(fmt.Sprintf("   podman push ttl.sh/%s:1h\n\n", imageUUID))
 	b.WriteString("   # Option 2: Push to quay.io (requires account)\n")
-	b.WriteString("   podman push my-catalog:dev quay.io/YOUR_USERNAME/my-catalog:dev\n\n")
+	b.WriteString(fmt.Sprintf("   podman tag %s quay.io/YOUR_USERNAME/%s\n", localTag, localTag))
+	b.WriteString(fmt.Sprintf("   podman push quay.io/YOUR_USERNAME/%s\n", localTag))
+	b.WriteString("   # Don't forget to make the image public\n\n")
 	step++
 
 	b.WriteString(fmt.Sprintf("%d. Generate deployment manifests:\n", step))
-	b.WriteString("   bpfman-catalog render --from-catalog ttl.sh/my-catalog:dev --output-dir ./deploy\n\n")
+	b.WriteString(fmt.Sprintf("   bpfman-catalog generate-manifests --from-catalog ttl.sh/%s:1h --output-dir ./deploy\n\n", imageUUID))
 	step++
 
 	b.WriteString(fmt.Sprintf("%d. Deploy to your cluster:\n", step))
