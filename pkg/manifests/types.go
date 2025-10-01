@@ -81,6 +81,15 @@ type ImageDigestMirror struct {
 	Mirrors []string `json:"mirrors"`
 }
 
+// CatalogMetadata contains metadata about a catalog image
+type CatalogMetadata struct {
+	Image       string // Full image reference
+	Digest      string // Full digest
+	ShortDigest string // Short digest for naming
+	CatalogType string // Type of catalog (e.g., catalog-ystream)
+	Version     string // Version extracted from image
+}
+
 // ManifestSet contains all manifests needed for deployment
 type ManifestSet struct {
 	Namespace     *Namespace

@@ -51,21 +51,15 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 		Dockerfile:  GenerateCatalogDockerfile(),
 	}
 
-	// Try to render the catalog if opm is available
-	if err := CheckOPMAvailable(); err == nil {
-		catalogYAML, err := RenderCatalog(ctx, fbcTemplate)
-		if err != nil {
-			// Non-fatal: user can still run opm manually
-			artifacts.Instructions = GenerateBuildInstructions(".", true)
-			artifacts.Instructions = fmt.Sprintf("WARNING: Could not render catalog automatically: %v\n\n%s", err, artifacts.Instructions)
-		} else {
-			artifacts.CatalogYAML = catalogYAML
-			artifacts.Instructions = GenerateBuildInstructions(".", false)
-		}
-	} else {
-		// opm not available, provide manual instructions
+	// Render the catalog using the OPM library
+	catalogYAML, err := RenderCatalog(ctx, fbcTemplate)
+	if err != nil {
+		// If rendering fails, provide instructions for manual rendering
 		artifacts.Instructions = GenerateBuildInstructions(".", true)
-		artifacts.Instructions = fmt.Sprintf("NOTE: opm is not installed. %v\n\n%s", err, artifacts.Instructions)
+		artifacts.Instructions = fmt.Sprintf("WARNING: Could not render catalog automatically: %v\n\n%s", err, artifacts.Instructions)
+	} else {
+		artifacts.CatalogYAML = catalogYAML
+		artifacts.Instructions = GenerateBuildInstructions(".", false)
 	}
 
 	return artifacts, nil

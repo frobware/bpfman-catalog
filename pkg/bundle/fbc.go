@@ -4,9 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
 	"strings"
 
+	"github.com/operator-framework/operator-registry/alpha/action"
+	"github.com/operator-framework/operator-registry/alpha/declcfg"
+	"github.com/operator-framework/operator-registry/alpha/template/basic"
+	"github.com/operator-framework/operator-registry/pkg/containertools"
+	"github.com/operator-framework/operator-registry/pkg/image/execregistry"
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
@@ -49,8 +54,16 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 		return nil, fmt.Errorf("bundle image cannot be empty")
 	}
 
+	// Extract digest suffix from bundle image for unique naming
+	digestSuffix := extractDigestSuffix(bundleImage)
+
 	if channel == "" {
 		channel = "preview" // Default channel for development
+	}
+
+	// Add digest suffix to channel name for uniqueness
+	if digestSuffix != "" {
+		channel = channel + "-" + digestSuffix
 	}
 
 	// Extract a simple name from the bundle image
@@ -85,7 +98,7 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 	return template, nil
 }
 
-// RenderCatalog uses opm to render the FBC template into a full catalog
+// RenderCatalog uses the OPM library to render the FBC template into a full catalog
 func RenderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error) {
 	// Marshal the template to YAML
 	templateYAML, err := yaml.Marshal(fbcTemplate)
@@ -93,28 +106,45 @@ func RenderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error
 		return "", fmt.Errorf("marshaling FBC template: %w", err)
 	}
 
-	// Check if opm is available
-	opmPath, err := exec.LookPath("opm")
+	// Create a logger (using a minimal logger for now)
+	logger := logrus.NewEntry(logrus.New())
+	logger.Logger.SetLevel(logrus.WarnLevel) // Reduce noise
+
+	// Create a registry using exec (podman/docker) for pulling bundle images
+	registry, err := execregistry.NewRegistry(containertools.PodmanTool, logger)
 	if err != nil {
-		return "", fmt.Errorf("opm not found in PATH: %w\nPlease install opm: https://docs.openshift.com/container-platform/latest/cli_reference/opm/cli-opm-install.html", err)
+		return "", fmt.Errorf("creating image registry: %w", err)
 	}
 
-	// Run opm render-template
-	cmd := exec.CommandContext(ctx, opmPath,
-		"alpha", "render-template", "basic",
-		"--migrate-level=bundle-object-to-csv-metadata",
-		"-o", "yaml")
-
-	cmd.Stdin = bytes.NewReader(templateYAML)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("running opm render-template: %w\nstderr: %s", err, stderr.String())
+	// Create the basic template with a render function for bundles
+	template := basic.Template{
+		RenderBundle: func(ctx context.Context, image string) (*declcfg.DeclarativeConfig, error) {
+			// Create a render action for the bundle image
+			r := action.Render{
+				Refs:           []string{image},
+				Registry:       registry,
+				AllowedRefMask: action.RefBundleImage,
+				// TODO: Add migration support if needed
+				// Migrations: migrations.NewMigrations("bundle-object-to-csv-metadata"),
+			}
+			return r.Run(ctx)
+		},
 	}
 
-	return stdout.String(), nil
+	// Render the template
+	reader := bytes.NewReader(templateYAML)
+	cfg, err := template.Render(ctx, reader)
+	if err != nil {
+		return "", fmt.Errorf("rendering template: %w", err)
+	}
+
+	// Write the result as YAML
+	var buf bytes.Buffer
+	if err := declcfg.WriteYAML(*cfg, &buf); err != nil {
+		return "", fmt.Errorf("writing catalog YAML: %w", err)
+	}
+
+	return buf.String(), nil
 }
 
 // GenerateCatalogDockerfile generates a Dockerfile for building a catalog image
@@ -196,11 +226,14 @@ func GenerateBuildInstructions(outputDir string, includeOpmStep bool) string {
 	return b.String()
 }
 
-// CheckOPMAvailable checks if opm is available in the system
-func CheckOPMAvailable() error {
-	_, err := exec.LookPath("opm")
-	if err != nil {
-		return fmt.Errorf("opm not found in PATH. Install from: https://docs.openshift.com/container-platform/latest/cli_reference/opm/cli-opm-install.html")
+// extractDigestSuffix extracts the first 8 characters of a digest from an image reference
+func extractDigestSuffix(imageRef string) string {
+	// Look for @sha256: pattern
+	if idx := strings.Index(imageRef, "@sha256:"); idx != -1 {
+		digestStr := imageRef[idx+8:] // Skip "@sha256:"
+		if len(digestStr) >= 8 {
+			return digestStr[:8] // First 8 chars of digest
+		}
 	}
-	return nil
+	return ""
 }

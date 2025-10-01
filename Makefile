@@ -13,6 +13,10 @@ export OCI_BIN
 
 LOCALBIN ?= $(shell pwd)/bin
 
+# Go build configuration - tags required for operator-registry library integration
+export GOFLAGS := -tags=json1,containers_image_openpgp
+export CGO_ENABLED := 0
+
 # OPM configuration - v1.52 for local install (v1.54 has go.mod replace issues)
 OPM_VERSION := v1.52.0
 OPM_IMAGE := quay.io/operator-framework/opm:$(OPM_VERSION)

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
 )
 
@@ -117,29 +115,12 @@ func parseImageReference(imageRef string, meta *ImageMetadata) error {
 	return nil
 }
 
-// fetchDigest fetches the digest from the registry if not present in the reference
+// fetchDigest is temporarily disabled to avoid CGO dependency conflicts
+// TODO: Re-implement using operator-registry's image handling or a pure Go alternative
 func fetchDigest(ctx context.Context, imageRef string, meta *ImageMetadata) error {
-	ref, err := docker.ParseReference("//" + imageRef)
-	if err != nil {
-		return fmt.Errorf("parsing docker reference: %w", err)
-	}
-
-	src, err := ref.NewImageSource(ctx, &types.SystemContext{
-		OSChoice:           "linux",
-		ArchitectureChoice: "amd64",
-	})
-	if err != nil {
-		return fmt.Errorf("creating image source: %w", err)
-	}
-	defer src.Close()
-
-	manifestBlob, _, err := src.GetManifest(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("getting manifest: %w", err)
-	}
-
-	meta.Digest = digest.FromBytes(manifestBlob)
-	return nil
+	// For now, generate a placeholder digest or skip if no digest in reference
+	// This allows the tool to work without pulling from registry
+	return fmt.Errorf("digest fetching temporarily disabled - please use image references with explicit digests (@sha256:...)")
 }
 
 // extractVersion attempts to extract version from repository or tag
