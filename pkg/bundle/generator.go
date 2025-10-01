@@ -3,6 +3,7 @@ package bundle
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"sigs.k8s.io/yaml"
 )
@@ -12,6 +13,7 @@ type Artifacts struct {
 	FBCTemplate  string // FBC template YAML
 	CatalogYAML  string // Rendered catalog (if opm is available)
 	Dockerfile   string // Dockerfile for building catalog image
+	Makefile     string // Makefile for building and deploying catalog
 	Instructions string // Build and deploy instructions
 }
 
@@ -59,9 +61,17 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 		return nil, fmt.Errorf("marshaling FBC template: %w", err)
 	}
 
+	// Get the path to the current executable
+	execPath, err := os.Executable()
+	if err != nil {
+		// Fallback if we can't get executable path
+		execPath = "bpfman-catalog"
+	}
+
 	artifacts := &Artifacts{
 		FBCTemplate: string(fbcYAML),
 		Dockerfile:  GenerateCatalogDockerfile(),
+		Makefile:    GenerateMakefile(g.bundleImage, execPath),
 	}
 
 	// Render the catalog using either binary or library

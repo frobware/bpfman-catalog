@@ -1,0 +1,68 @@
+# Auto-generated Makefile for catalog deployment
+# Generated from bundle: {{.BundleImage}}
+
+IMAGE ?= quay.io/$(USER)/{{.LocalTag}}:latest
+OCI_BIN ?= podman
+BPFMAN_CATALOG := {{.BinaryPath}}
+
+.PHONY: build-catalog-image
+build-catalog-image:
+	$(OCI_BIN) build -f Dockerfile.catalog -t $(IMAGE) .
+
+.PHONY: push-catalog-image
+push-catalog-image:
+	$(OCI_BIN) push $(IMAGE)
+
+.PHONY: get-catalog-digest
+get-catalog-digest:
+	@echo "Getting registry digest for $(IMAGE)..."
+	@skopeo inspect docker://$(IMAGE) | jq -r '.Digest'
+
+.PHONY: deploy
+deploy:
+	$(eval DIGEST := $(shell skopeo inspect docker://$(IMAGE) | jq -r '.Digest'))
+	$(eval IMAGE_BASE := $(shell echo $(IMAGE) | sed 's/:.*$$//'))
+	$(eval IMAGE_WITH_DIGEST := $(IMAGE_BASE)@$(DIGEST))
+	@echo "Deploying catalog infrastructure with digest: $(IMAGE_WITH_DIGEST)"
+	$(BPFMAN_CATALOG) generate-manifests --from-catalog $(IMAGE_WITH_DIGEST) --output-dir ./manifests
+	kubectl apply -f ./manifests/catalog/
+
+.PHONY: subscribe
+subscribe: deploy
+	@echo "Adding subscription for automatic operator installation..."
+	kubectl apply -f ./manifests/subscription/
+
+.PHONY: undeploy
+undeploy:
+	kubectl delete -f ./manifests/ 2>/dev/null || true
+
+.PHONY: all
+all: build-catalog-image push-catalog-image subscribe
+
+.PHONY: help
+help:
+	@echo "Available targets:"
+	@echo "  build-catalog-image  - Build catalog container image"
+	@echo "  push-catalog-image   - Push catalog image to registry"
+	@echo "  get-catalog-digest   - Get digest of pushed catalog image"
+	@echo "  deploy               - Deploy catalog infrastructure only (use UI to install operator)"
+	@echo "  subscribe            - Add subscription for automatic installation (requires deploy first)"
+	@echo "  undeploy             - Remove catalog from cluster"
+	@echo "  all                  - Complete build -> push -> subscribe pipeline"
+	@echo ""
+	@echo "Usage examples:"
+	@echo "  make all                                   # Complete workflow with auto-subscription"
+	@echo "  IMAGE=ttl.sh/my-catalog:1h make all        # Use custom registry"
+	@echo "  IMAGE=quay.io/user/my-catalog make all     # Use quay.io"
+	@echo ""
+	@echo "Deployment options:"
+	@echo "  make deploy                                # Catalog only, then use UI"
+	@echo "  make subscribe                             # Full automation with subscription"
+	@echo ""
+	@echo "Step-by-step workflow:"
+	@echo "  make build-catalog-image push-catalog-image subscribe"
+	@echo ""
+	@echo "Variables:"
+	@echo "  IMAGE=$(IMAGE)"
+	@echo "  OCI_BIN=$(OCI_BIN)"
+	@echo "  BPFMAN_CATALOG=$(BPFMAN_CATALOG)"

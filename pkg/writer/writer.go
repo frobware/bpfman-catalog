@@ -23,36 +23,58 @@ func New(outputDir string) *ManifestWriter {
 
 // WriteAll writes all manifests in a ManifestSet to files.
 func (w *ManifestWriter) WriteAll(manifestSet *manifests.ManifestSet) error {
+	return w.WriteAllSeparated(manifestSet)
+}
+
+// WriteAllSeparated writes manifests in separate subdirectories for flexible deployment.
+// Creates:
+//   - catalog/ - Namespace, IDMS, CatalogSource (catalog infrastructure)
+//   - subscription/ - OperatorGroup, Subscription (operator installation)
+func (w *ManifestWriter) WriteAllSeparated(manifestSet *manifests.ManifestSet) error {
 	if err := os.MkdirAll(w.outputDir, 0755); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
+	// Create subdirectories
+	catalogDir := filepath.Join(w.outputDir, "catalog")
+	subscriptionDir := filepath.Join(w.outputDir, "subscription")
+
+	if err := os.MkdirAll(catalogDir, 0755); err != nil {
+		return fmt.Errorf("creating catalog directory: %w", err)
+	}
+
+	if err := os.MkdirAll(subscriptionDir, 0755); err != nil {
+		return fmt.Errorf("creating subscription directory: %w", err)
+	}
+
+	// Write catalog infrastructure manifests
 	if manifestSet.Namespace != nil {
-		if err := w.writeManifest("00-namespace.yaml", manifestSet.Namespace); err != nil {
+		if err := w.writeManifestToDir(catalogDir, "00-namespace.yaml", manifestSet.Namespace); err != nil {
 			return fmt.Errorf("writing namespace: %w", err)
 		}
 	}
 
 	if manifestSet.IDMS != nil {
-		if err := w.writeManifest("01-idms.yaml", manifestSet.IDMS); err != nil {
+		if err := w.writeManifestToDir(catalogDir, "01-idms.yaml", manifestSet.IDMS); err != nil {
 			return fmt.Errorf("writing IDMS: %w", err)
 		}
 	}
 
 	if manifestSet.CatalogSource != nil {
-		if err := w.writeManifest("02-catalogsource.yaml", manifestSet.CatalogSource); err != nil {
+		if err := w.writeManifestToDir(catalogDir, "02-catalogsource.yaml", manifestSet.CatalogSource); err != nil {
 			return fmt.Errorf("writing CatalogSource: %w", err)
 		}
 	}
 
+	// Write subscription manifests
 	if manifestSet.OperatorGroup != nil {
-		if err := w.writeManifest("03-operatorgroup.yaml", manifestSet.OperatorGroup); err != nil {
+		if err := w.writeManifestToDir(subscriptionDir, "03-operatorgroup.yaml", manifestSet.OperatorGroup); err != nil {
 			return fmt.Errorf("writing OperatorGroup: %w", err)
 		}
 	}
 
 	if manifestSet.Subscription != nil {
-		if err := w.writeManifest("04-subscription.yaml", manifestSet.Subscription); err != nil {
+		if err := w.writeManifestToDir(subscriptionDir, "04-subscription.yaml", manifestSet.Subscription); err != nil {
 			return fmt.Errorf("writing Subscription: %w", err)
 		}
 	}
@@ -62,12 +84,17 @@ func (w *ManifestWriter) WriteAll(manifestSet *manifests.ManifestSet) error {
 
 // writeManifest writes a single manifest to a file
 func (w *ManifestWriter) writeManifest(filename string, manifest interface{}) error {
+	return w.writeManifestToDir(w.outputDir, filename, manifest)
+}
+
+// writeManifestToDir writes a single manifest to a file in a specific directory
+func (w *ManifestWriter) writeManifestToDir(dir, filename string, manifest interface{}) error {
 	data, err := yaml.Marshal(manifest)
 	if err != nil {
 		return fmt.Errorf("marshaling manifest: %w", err)
 	}
 
-	path := filepath.Join(w.outputDir, filename)
+	path := filepath.Join(dir, filename)
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("writing file %s: %w", path, err)
 	}

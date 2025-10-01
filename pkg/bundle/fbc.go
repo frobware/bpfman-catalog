@@ -3,11 +3,13 @@ package bundle
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/google/uuid"
 
@@ -20,6 +22,15 @@ import (
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
+
+//go:embed templates/Makefile.tmpl
+var makefileTemplate string
+
+// BundleInfo contains extracted bundle metadata
+type BundleInfo struct {
+	Name    string
+	Package string
+}
 
 // FBCTemplate represents a File-Based Catalog template
 type FBCTemplate struct {
@@ -60,19 +71,20 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 		return nil, fmt.Errorf("bundle image cannot be empty")
 	}
 
-	digestSuffix := extractDigestSuffix(bundleImage)
-
 	if channel == "" {
 		channel = "preview"
 	}
 
-	if digestSuffix != "" {
-		channel = channel + "-sha-" + digestSuffix
+	// Keep channel simple - always use "preview"
+
+	// Extract bundle metadata to get the real bundle name
+	bundleInfo, err := extractBundleInfo(bundleImage)
+	if err != nil {
+		return nil, fmt.Errorf("extracting bundle info: %w", err)
 	}
 
-	// This is a simplified version - in production you might inspect the bundle
-	bundleName := "bpfman-operator.vnext"
-	packageName := "bpfman-operator"
+	bundleName := bundleInfo.Name
+	packageName := bundleInfo.Package
 
 	template := &FBCTemplate{
 		Schema: "olm.template.basic",
@@ -107,6 +119,9 @@ func RenderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error
 	if err != nil {
 		return "", fmt.Errorf("marshaling FBC template: %w", err)
 	}
+
+	// Suppress noisy INFO logs from operator-registry library
+	logrus.SetLevel(logrus.WarnLevel)
 
 	logger := logrus.NewEntry(logrus.New())
 	logger.Logger.SetLevel(logrus.WarnLevel)
@@ -185,12 +200,6 @@ CMD ["serve", "/configs"]
 func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImage string) string {
 	var b strings.Builder
 	imageUUID := uuid.New().String()
-	digestSuffix := extractDigestSuffix(bundleImage)
-
-	localTag := "bpfman-catalog"
-	if digestSuffix != "" {
-		localTag = fmt.Sprintf("bpfman-catalog-sha-%s", digestSuffix)
-	}
 
 	b.WriteString("Bundle artifacts generated successfully!\n\n")
 	b.WriteString("Generated files:\n")
@@ -200,38 +209,45 @@ func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImag
 		b.WriteString(fmt.Sprintf("  %s/catalog.yaml       - Rendered catalog (ready to build)\n", outputDir))
 	}
 
-	b.WriteString(fmt.Sprintf("  %s/Dockerfile.catalog - Dockerfile for catalog image\n\n", outputDir))
+	b.WriteString(fmt.Sprintf("  %s/Dockerfile.catalog - Dockerfile for catalog image\n", outputDir))
+	b.WriteString(fmt.Sprintf("  %s/Makefile          - Makefile for automated build/push/deploy\n\n", outputDir))
 
-	b.WriteString("Next steps to deploy your catalog:\n\n")
+	b.WriteString("To deploy your catalog:\n\n")
 
-	step := 1
 	if includeOpmStep {
-		b.WriteString(fmt.Sprintf("%d. Render the catalog from the FBC template:\n", step))
-		b.WriteString(fmt.Sprintf("   opm alpha render-template basic --migrate-level=bundle-object-to-csv-metadata -o yaml %s/fbc-template.yaml > %s/catalog.yaml\n\n", outputDir, outputDir))
-		step++
+		b.WriteString("Step-by-step workflow:\n")
+		b.WriteString(fmt.Sprintf("  1. Build:  make -C %s build-catalog-image\n", outputDir))
+		b.WriteString(fmt.Sprintf("  2. Push:   make -C %s push-catalog-image\n", outputDir))
+		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy\n\n", outputDir))
+
+		b.WriteString("After deploying, the catalog will be available in the OpenShift Console's\n")
+		b.WriteString("OperatorHub where you can manually install the bpfman operator.\n\n")
+
+		b.WriteString("For automatic installation (optional):\n")
+		b.WriteString(fmt.Sprintf("  4. Subscribe: make -C %s subscribe\n\n", outputDir))
+
+		b.WriteString("All-in-one workflow (build + push + subscribe):\n")
+		b.WriteString(fmt.Sprintf("  make -C %s all\n\n", outputDir))
+	} else {
+		b.WriteString("Step-by-step workflow:\n")
+		b.WriteString(fmt.Sprintf("  1. Build:  make -C %s build-catalog-image\n", outputDir))
+		b.WriteString(fmt.Sprintf("  2. Push:   make -C %s push-catalog-image\n", outputDir))
+		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy\n\n", outputDir))
+
+		b.WriteString("After deploying, the catalog will be available in the OpenShift Console's\n")
+		b.WriteString("OperatorHub where you can manually install the bpfman operator.\n\n")
+
+		b.WriteString("For automatic installation (optional):\n")
+		b.WriteString(fmt.Sprintf("  4. Subscribe: make -C %s subscribe\n\n", outputDir))
+
+		b.WriteString("All-in-one workflow (build + push + subscribe):\n")
+		b.WriteString(fmt.Sprintf("  make -C %s all\n\n", outputDir))
 	}
 
-	b.WriteString(fmt.Sprintf("%d. Build the catalog image:\n", step))
-	b.WriteString(fmt.Sprintf("   cd %s\n", outputDir))
-	b.WriteString(fmt.Sprintf("   podman build -f Dockerfile.catalog -t %s .\n\n", localTag))
-	step++
-
-	b.WriteString(fmt.Sprintf("%d. Push to a registry:\n", step))
-	b.WriteString("   # Option 1: Push to ttl.sh (anonymous, expires in 1h)\n")
-	b.WriteString(fmt.Sprintf("   podman tag %s ttl.sh/%s:1h\n", localTag, imageUUID))
-	b.WriteString(fmt.Sprintf("   podman push ttl.sh/%s:1h\n\n", imageUUID))
-	b.WriteString("   # Option 2: Push to quay.io (requires account)\n")
-	b.WriteString(fmt.Sprintf("   podman tag %s quay.io/YOUR_USERNAME/%s\n", localTag, localTag))
-	b.WriteString(fmt.Sprintf("   podman push quay.io/YOUR_USERNAME/%s\n", localTag))
-	b.WriteString("   # Don't forget to make the image public\n\n")
-	step++
-
-	b.WriteString(fmt.Sprintf("%d. Generate deployment manifests:\n", step))
-	b.WriteString(fmt.Sprintf("   bpfman-catalog generate-manifests --from-catalog ttl.sh/%s:1h --output-dir ./deploy\n\n", imageUUID))
-	step++
-
-	b.WriteString(fmt.Sprintf("%d. Deploy to your cluster:\n", step))
-	b.WriteString("   kubectl apply -f ./deploy\n")
+	b.WriteString("Custom registry examples:\n")
+	b.WriteString(fmt.Sprintf("  make -C %s IMAGE=ttl.sh/%s:1h all\n", outputDir, imageUUID))
+	b.WriteString(fmt.Sprintf("  make -C %s IMAGE=quay.io/user/my-catalog all\n", outputDir))
+	b.WriteString(fmt.Sprintf("\nFor all options: make -C %s help\n", outputDir))
 
 	return b.String()
 }
@@ -246,6 +262,49 @@ func extractDigestSuffix(imageRef string) string {
 		}
 	}
 	return ""
+}
+
+// extractBundleInfo extracts bundle name and package from bundle metadata
+func extractBundleInfo(bundleImage string) (*BundleInfo, error) {
+	// Suppress noisy INFO logs from operator-registry library
+	logrus.SetLevel(logrus.WarnLevel)
+
+	logger := logrus.NewEntry(logrus.New())
+	logger.Logger.SetLevel(logrus.WarnLevel)
+
+	registry, err := execregistry.NewRegistry(containertools.PodmanTool, logger)
+	if err != nil {
+		return nil, fmt.Errorf("creating image registry: %w", err)
+	}
+
+	migs, err := migrations.NewMigrations("bundle-object-to-csv-metadata")
+	if err != nil {
+		return nil, fmt.Errorf("creating migrations: %w", err)
+	}
+
+	r := action.Render{
+		Refs:           []string{bundleImage},
+		Registry:       registry,
+		AllowedRefMask: action.RefBundleImage,
+		Migrations:     migs,
+	}
+
+	cfg, err := r.Run(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("rendering bundle: %w", err)
+	}
+
+	// Find the bundle entry in the rendered config
+	for _, bundle := range cfg.Bundles {
+		if bundle.Image == bundleImage {
+			return &BundleInfo{
+				Name:    bundle.Name,
+				Package: bundle.Package,
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("bundle not found in rendered config")
 }
 
 // RenderCatalogWithBinary uses an external opm binary to render the FBC template into a full catalog.
@@ -281,4 +340,38 @@ func RenderCatalogWithBinary(ctx context.Context, fbcTemplate *FBCTemplate, ompB
 	}
 
 	return string(output), nil
+}
+
+// GenerateMakefile generates a Makefile for building and deploying the catalog
+func GenerateMakefile(bundleImage, binaryPath string) string {
+	digestSuffix := extractDigestSuffix(bundleImage)
+
+	localTag := "bpfman-catalog"
+	if digestSuffix != "" {
+		localTag = fmt.Sprintf("bpfman-catalog-sha-%s", digestSuffix)
+	}
+
+	tmpl, err := template.New("makefile").Parse(makefileTemplate)
+	if err != nil {
+		// Fallback to static template if parsing fails
+		return fmt.Sprintf("# Error parsing Makefile template: %v\n# Bundle: %s\n", err, bundleImage)
+	}
+
+	data := struct {
+		BundleImage string
+		LocalTag    string
+		BinaryPath  string
+	}{
+		BundleImage: bundleImage,
+		LocalTag:    localTag,
+		BinaryPath:  binaryPath,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		// Fallback to static template if execution fails
+		return fmt.Sprintf("# Error executing Makefile template: %v\n# Bundle: %s\n", err, bundleImage)
+	}
+
+	return buf.String()
 }
