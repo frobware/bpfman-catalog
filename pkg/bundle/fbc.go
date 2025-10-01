@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/operator-framework/operator-registry/alpha/action"
+	"github.com/operator-framework/operator-registry/alpha/action/migrations"
 	"github.com/operator-framework/operator-registry/alpha/declcfg"
 	"github.com/operator-framework/operator-registry/alpha/template/basic"
 	"github.com/operator-framework/operator-registry/pkg/containertools"
@@ -112,12 +116,16 @@ func RenderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error
 
 	template := basic.Template{
 		RenderBundle: func(ctx context.Context, image string) (*declcfg.DeclarativeConfig, error) {
+			migs, err := migrations.NewMigrations("bundle-object-to-csv-metadata")
+			if err != nil {
+				return nil, fmt.Errorf("creating migrations: %w", err)
+			}
+
 			r := action.Render{
 				Refs:           []string{image},
 				Registry:       registry,
 				AllowedRefMask: action.RefBundleImage,
-				// TODO: Add migration support if needed
-				// Migrations: migrations.NewMigrations("bundle-object-to-csv-metadata"),
+				Migrations:     migs,
 			}
 			return r.Run(ctx)
 		},
@@ -226,4 +234,39 @@ func extractDigestSuffix(imageRef string) string {
 		}
 	}
 	return ""
+}
+
+// RenderCatalogWithBinary uses an external opm binary to render the FBC template into a full catalog.
+func RenderCatalogWithBinary(ctx context.Context, fbcTemplate *FBCTemplate, ompBinPath string) (string, error) {
+	templateYAML, err := yaml.Marshal(fbcTemplate)
+	if err != nil {
+		return "", fmt.Errorf("marshaling FBC template: %w", err)
+	}
+
+	tempDir, err := os.MkdirTemp("", "bpfman-catalog-render-")
+	if err != nil {
+		return "", fmt.Errorf("creating temp directory: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	templateFile := filepath.Join(tempDir, "template.yaml")
+	if err := os.WriteFile(templateFile, templateYAML, 0644); err != nil {
+		return "", fmt.Errorf("writing template file: %w", err)
+	}
+
+	cmd := exec.CommandContext(ctx, ompBinPath, "alpha", "render-template", "basic",
+		"--migrate-level=bundle-object-to-csv-metadata",
+		"-o", "yaml",
+		templateFile)
+	cmd.Dir = tempDir
+
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("omp command failed with exit code %d: %s", exitErr.ExitCode(), string(exitErr.Stderr))
+		}
+		return "", fmt.Errorf("running omp command: %w", err)
+	}
+
+	return string(output), nil
 }
