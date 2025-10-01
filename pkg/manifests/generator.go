@@ -60,6 +60,14 @@ func (g *Generator) setupLabelContext(shortDigest string) {
 	}
 }
 
+// generateResourceName creates a resource name with optional digest suffix
+func (g *Generator) generateResourceName(baseName string) string {
+	if g.labelContext.ShortDigest != "" {
+		return fmt.Sprintf("%s-sha-%s", baseName, g.labelContext.ShortDigest)
+	}
+	return baseName
+}
+
 // getMergedLabels returns standard labels merged with any custom labels and additional labels
 func (g *Generator) getMergedLabels(additionalLabels map[string]string) map[string]string {
 	merged := make(map[string]string)
@@ -84,11 +92,6 @@ func (g *Generator) getMergedLabels(additionalLabels map[string]string) map[stri
 
 // NewNamespace creates a namespace manifest with consistent labeling
 func (g *Generator) NewNamespace(baseName string) *Namespace {
-	name := baseName
-	if g.labelContext.ShortDigest != "" {
-		name = fmt.Sprintf("%s-%s", baseName, g.labelContext.ShortDigest)
-	}
-
 	// Namespace-specific labels (like monitoring)
 	additionalLabels := map[string]string{
 		"openshift.io/cluster-monitoring": "true",
@@ -100,7 +103,7 @@ func (g *Generator) NewNamespace(baseName string) *Namespace {
 			Kind:       "Namespace",
 		},
 		ObjectMeta: ObjectMeta{
-			Name:   name,
+			Name:   g.generateResourceName(baseName),
 			Labels: g.getMergedLabels(additionalLabels),
 		},
 	}
@@ -108,18 +111,13 @@ func (g *Generator) NewNamespace(baseName string) *Namespace {
 
 // NewCatalogSource creates a catalog source manifest with consistent labeling
 func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
-	name := "bpfman-catalogsource"
-	if g.labelContext.ShortDigest != "" {
-		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
-	}
-
 	return &CatalogSource{
 		TypeMeta: TypeMeta{
 			APIVersion: "operators.coreos.com/v1alpha1",
 			Kind:       "CatalogSource",
 		},
 		ObjectMeta: ObjectMeta{
-			Name:      name,
+			Name:      g.generateResourceName("bpfman-catalogsource"),
 			Namespace: "openshift-marketplace",
 			Labels:    g.getMergedLabels(nil),
 		},
@@ -134,18 +132,13 @@ func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 
 // NewOperatorGroup creates an operator group manifest with consistent labeling
 func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
-	name := "bpfman-operatorgroup"
-	if g.labelContext.ShortDigest != "" {
-		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
-	}
-
 	return &OperatorGroup{
 		TypeMeta: TypeMeta{
 			APIVersion: "operators.coreos.com/v1",
 			Kind:       "OperatorGroup",
 		},
 		ObjectMeta: ObjectMeta{
-			Name:      name,
+			Name:      g.generateResourceName("bpfman-operatorgroup"),
 			Namespace: namespace,
 			Labels:    g.getMergedLabels(nil),
 		},
@@ -155,18 +148,13 @@ func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
 
 // NewSubscription creates a subscription manifest with consistent labeling
 func (g *Generator) NewSubscription(namespace, catalogSourceName string) *Subscription {
-	name := "bpfman-subscription"
-	if g.labelContext.ShortDigest != "" {
-		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
-	}
-
 	return &Subscription{
 		TypeMeta: TypeMeta{
 			APIVersion: "operators.coreos.com/v1alpha1",
 			Kind:       "Subscription",
 		},
 		ObjectMeta: ObjectMeta{
-			Name:      name,
+			Name:      g.generateResourceName("bpfman-subscription"),
 			Namespace: namespace,
 			Labels:    g.getMergedLabels(nil),
 		},
@@ -182,18 +170,13 @@ func (g *Generator) NewSubscription(namespace, catalogSourceName string) *Subscr
 
 // NewImageDigestMirrorSet creates an IDMS manifest with consistent labeling
 func (g *Generator) NewImageDigestMirrorSet() *ImageDigestMirrorSet {
-	name := "bpfman-idms"
-	if g.labelContext.ShortDigest != "" {
-		name = fmt.Sprintf("%s-%s", name, g.labelContext.ShortDigest)
-	}
-
 	return &ImageDigestMirrorSet{
 		TypeMeta: TypeMeta{
 			APIVersion: "config.openshift.io/v1",
 			Kind:       "ImageDigestMirrorSet",
 		},
 		ObjectMeta: ObjectMeta{
-			Name:   name,
+			Name:   g.generateResourceName("bpfman-idms"),
 			Labels: g.getMergedLabels(nil),
 		},
 		Spec: ImageDigestMirrorSetSpec{
