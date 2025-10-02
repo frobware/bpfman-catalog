@@ -20,6 +20,7 @@ go 1.24.6
 
 require (
 	github.com/alecthomas/kong v1.12.1
+	github.com/google/uuid v1.6.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/operator-framework/operator-registry v1.59.0
 	github.com/sirupsen/logrus v1.9.3
@@ -79,7 +80,6 @@ require (
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.20.6 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.0 // indirect
 	github.com/h2non/filetype v1.1.3 // indirect

@@ -122,12 +122,15 @@ func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 			Namespace: "openshift-marketplace",
 			Labels:    g.getMergedLabels(nil),
 		},
-		Spec: CatalogSourceSpec{
-			SourceType:  "grpc",
-			Image:       meta.Image,
-			DisplayName: fmt.Sprintf("BPFman Operator Catalog (%s - %s)", meta.ShortDigest, time.Now().Format("2006-01-02 15:04:05")),
-			Publisher:   "bpfman-catalog-cli",
-		},
+		Spec: func() CatalogSourceSpec {
+			timestamp := time.Now().Format("2006-01-02 15:04:05")
+			return CatalogSourceSpec{
+				SourceType:  "grpc",
+				Image:       meta.Image,
+				DisplayName: fmt.Sprintf("BPFman Operator Catalog (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
+				Publisher:   fmt.Sprintf("bpfman-catalog-cli (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
+			}
+		}(),
 	}
 }
 
