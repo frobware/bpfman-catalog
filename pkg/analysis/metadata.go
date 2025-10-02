@@ -1,0 +1,216 @@
+package analysis
+
+import (
+	"context"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/containers/image/v5/types"
+)
+
+// ExtractImageMetadata performs detailed metadata extraction from image labels.
+func ExtractImageMetadata(ctx context.Context, imageRef ImageRef) (*ImageInfo, error) {
+	info, err := inspectImageRef(ctx, imageRef)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inspect image: %w", err)
+	}
+
+	return extractMetadataFromLabels(info), nil
+}
+
+// extractMetadataFromLabels extracts comprehensive metadata from image labels.
+func extractMetadataFromLabels(info *types.ImageInspectInfo) *ImageInfo {
+	if info == nil || info.Labels == nil {
+		return &ImageInfo{
+			Created: info.Created,
+		}
+	}
+
+	labels := info.Labels
+	metadata := &ImageInfo{
+		Created: info.Created,
+	}
+
+	// Extract version information
+	metadata.Version = extractVersion(labels)
+
+	// Extract git commit information
+	metadata.GitCommit = extractGitCommit(labels)
+
+	// Extract git URL
+	metadata.GitURL = extractGitURL(labels)
+
+	// Extract PR information
+	metadata.PRNumber, metadata.PRTitle = extractPRInfo(labels)
+
+	return metadata
+}
+
+// extractVersion attempts to find version information from various label patterns.
+func extractVersion(labels map[string]string) string {
+	versionKeys := []string{
+		"version",
+		"io.openshift.tags",
+		"io.k8s.display-name",
+		"summary",
+		"name",
+	}
+
+	for _, key := range versionKeys {
+		if value := labels[key]; value != "" {
+			// Try to extract version-like patterns
+			if version := extractVersionFromString(value); version != "" {
+				return version
+			}
+		}
+	}
+
+	return ""
+}
+
+// extractVersionFromString attempts to extract version patterns from a string.
+func extractVersionFromString(s string) string {
+	// Common version patterns
+	patterns := []string{
+		`v?(\d+\.\d+\.\d+)`,    // v1.2.3 or 1.2.3
+		`v?(\d+\.\d+)`,         // v1.2 or 1.2
+		`(\d+\.\d+\.\d+-\w+)`,  // 1.2.3-alpha
+		`(\d+\.\d+\.\d+\.\d+)`, // 1.2.3.4
+	}
+
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		if matches := re.FindStringSubmatch(s); len(matches) > 1 {
+			return matches[1]
+		}
+	}
+
+	return ""
+}
+
+// extractGitCommit attempts to find git commit information from labels.
+func extractGitCommit(labels map[string]string) string {
+	commitKeys := []string{
+		"io.openshift.build.commit.id",
+		"vcs-ref",
+		"io.openshift.build.commit",
+		"git.commit",
+		"commit",
+	}
+
+	for _, key := range commitKeys {
+		if value := labels[key]; value != "" {
+			// Ensure it looks like a git commit hash
+			if isValidCommitHash(value) {
+				return value
+			}
+		}
+	}
+
+	return ""
+}
+
+// extractGitURL attempts to find git repository URL from labels.
+func extractGitURL(labels map[string]string) string {
+	urlKeys := []string{
+		"io.openshift.build.source-location",
+		"vcs-url",
+		"io.openshift.build.source",
+		"git.url",
+		"source",
+	}
+
+	for _, key := range urlKeys {
+		if value := labels[key]; value != "" {
+			// Clean up the URL
+			url := cleanGitURL(value)
+			if url != "" {
+				return url
+			}
+		}
+	}
+
+	return ""
+}
+
+// extractPRInfo attempts to extract PR number and title from various sources.
+func extractPRInfo(labels map[string]string) (int, string) {
+	prKeys := []string{
+		"io.openshift.build.name",
+		"build.name",
+		"name",
+	}
+
+	for _, key := range prKeys {
+		if value := labels[key]; value != "" {
+			if prNum := extractPRNumber(value); prNum > 0 {
+				return prNum, value
+			}
+		}
+	}
+
+	return 0, ""
+}
+
+// isValidCommitHash checks if a string looks like a git commit hash.
+func isValidCommitHash(s string) bool {
+	if len(s) < 7 || len(s) > 40 {
+		return false
+	}
+
+	// Should only contain hexadecimal characters
+	matched, _ := regexp.MatchString(`^[a-fA-F0-9]+$`, s)
+	return matched
+}
+
+// cleanGitURL cleans and normalises a git URL.
+func cleanGitURL(rawURL string) string {
+	if rawURL == "" {
+		return ""
+	}
+
+	// Remove .git suffix
+	url := strings.TrimSuffix(rawURL, ".git")
+
+	// Ensure it's a valid GitHub URL pattern
+	if strings.Contains(url, "github.com") {
+		return url
+	}
+
+	return rawURL
+}
+
+// extractPRNumber attempts to extract a PR number from a string.
+func extractPRNumber(s string) int {
+	// Look for patterns like "pr-123", "pull-123", "#123"
+	patterns := []string{
+		`pr-(\d+)`,
+		`pull-(\d+)`,
+		`#(\d+)`,
+		`-(\d+)$`, // Number at the end
+	}
+
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		if matches := re.FindStringSubmatch(s); len(matches) > 1 {
+			if num, err := strconv.Atoi(matches[1]); err == nil {
+				return num
+			}
+		}
+	}
+
+	return 0
+}
+
+// EnhanceWithGitHubMetadata attempts to enhance metadata with GitHub API information.
+// This is a placeholder for future GitHub integration.
+func EnhanceWithGitHubMetadata(ctx context.Context, metadata *ImageInfo) error {
+	// TODO: Implement GitHub API integration to fetch PR titles, commit messages, etc.
+	// This would require GitHub token and API calls to:
+	// - Get PR information from PR number
+	// - Get commit information from commit hash
+	// - Enhance the metadata with additional context
+	return nil
+}
