@@ -5,11 +5,13 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -25,6 +27,19 @@ import (
 
 //go:embed templates/Makefile.tmpl
 var makefileTemplate string
+
+// generateRandomTTL generates a random TTL between 15m and 30m for ttl.sh
+func generateRandomTTL() string {
+	// Seed random number generator with current time
+	rand.Seed(time.Now().UnixNano())
+
+	// Generate random duration between 15 and 30 minutes
+	minMinutes := 15
+	maxMinutes := 30
+	randomMinutes := rand.Intn(maxMinutes-minMinutes+1) + minMinutes
+
+	return fmt.Sprintf("%dm", randomMinutes)
+}
 
 // BundleInfo contains extracted bundle metadata
 type BundleInfo struct {
@@ -199,7 +214,8 @@ CMD ["serve", "/configs"]
 // GenerateBuildInstructions generates instructions for the user
 func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImage string) string {
 	var b strings.Builder
-	imageUUID := uuid.New().String()
+	// Use two UUIDs for maximum entropy and obfuscation
+	imageUUID := fmt.Sprintf("%s-%s", uuid.New().String(), uuid.New().String())
 
 	b.WriteString("Bundle artifacts generated successfully!\n\n")
 	b.WriteString("Generated files:\n")
@@ -251,7 +267,8 @@ func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImag
 	}
 
 	b.WriteString("Custom registry examples:\n")
-	b.WriteString(fmt.Sprintf("  make -C %s IMAGE=ttl.sh/%s:1h all\n", outputDir, imageUUID))
+	randomTTL := generateRandomTTL()
+	b.WriteString(fmt.Sprintf("  make -C %s IMAGE=ttl.sh/%s:%s all\n", outputDir, imageUUID, randomTTL))
 	b.WriteString(fmt.Sprintf("  make -C %s IMAGE=quay.io/user/my-catalog all\n", outputDir))
 	b.WriteString(fmt.Sprintf("\nFor all options: make -C %s help\n", outputDir))
 
