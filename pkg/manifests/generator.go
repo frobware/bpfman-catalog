@@ -213,8 +213,10 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 	g.setupLabelContext(digestSuffix)
 
 	// Create catalog metadata for manifest generation
+	// Use the digest-based image reference for the actual catalog deployment
+	digestRef := meta.GetDigestRef()
 	catalogMeta := CatalogMetadata{
-		Image:       g.config.ImageRef,
+		Image:       digestRef,
 		Digest:      string(meta.Digest),
 		ShortDigest: meta.ShortDigest,
 		CatalogType: meta.CatalogType,
@@ -236,9 +238,12 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 	namespaceName := manifestSet.Namespace.ObjectMeta.Name
 	manifestSet.OperatorGroup = g.NewOperatorGroup(namespaceName)
 
-	// Generate Subscription - use hardcoded preview channel for simplicity
+	// Generate Subscription - use the detected default channel
 	catalogSourceName := manifestSet.CatalogSource.ObjectMeta.Name
-	channel := "preview"
+	channel := meta.DefaultChannel
+	if channel == "" {
+		return nil, fmt.Errorf("no default channel found in catalog metadata")
+	}
 	manifestSet.Subscription = g.NewSubscription(namespaceName, catalogSourceName, channel)
 
 	return manifestSet, nil
