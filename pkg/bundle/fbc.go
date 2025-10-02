@@ -203,14 +203,14 @@ func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImag
 
 	b.WriteString("Bundle artifacts generated successfully!\n\n")
 	b.WriteString("Generated files:\n")
-	b.WriteString(fmt.Sprintf("  %s/fbc-template.yaml  - FBC template for your bundle\n", outputDir))
+	b.WriteString(fmt.Sprintf("  %s/fbc-template.yaml   - FBC template for your bundle\n", outputDir))
 
 	if !includeOpmStep {
-		b.WriteString(fmt.Sprintf("  %s/catalog.yaml       - Rendered catalog (ready to build)\n", outputDir))
+		b.WriteString(fmt.Sprintf("  %s/catalog.yaml        - Rendered catalog (ready to build)\n", outputDir))
 	}
 
-	b.WriteString(fmt.Sprintf("  %s/Dockerfile.catalog - Dockerfile for catalog image\n", outputDir))
-	b.WriteString(fmt.Sprintf("  %s/Makefile          - Makefile for automated build/push/deploy\n\n", outputDir))
+	b.WriteString(fmt.Sprintf("  %s/Dockerfile.catalog  - Dockerfile for catalog image\n", outputDir))
+	b.WriteString(fmt.Sprintf("  %s/Makefile           - Makefile for automated build/push/deploy\n\n", outputDir))
 
 	b.WriteString("To deploy your catalog:\n\n")
 
@@ -218,29 +218,35 @@ func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImag
 		b.WriteString("Step-by-step workflow:\n")
 		b.WriteString(fmt.Sprintf("  1. Build:  make -C %s build-catalog-image\n", outputDir))
 		b.WriteString(fmt.Sprintf("  2. Push:   make -C %s push-catalog-image\n", outputDir))
-		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy\n\n", outputDir))
+		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy-catalog\n\n", outputDir))
+
+		b.WriteString("Shortcut for catalog only (build + push + deploy):\n")
+		b.WriteString(fmt.Sprintf("  make -C %s build-and-deploy-catalog\n\n", outputDir))
 
 		b.WriteString("After deploying, the catalog will be available in the OpenShift Console's\n")
 		b.WriteString("OperatorHub where you can manually install the bpfman operator.\n\n")
 
-		b.WriteString("For automatic installation (optional):\n")
+		b.WriteString("For automatic subscription (will install the operator):\n")
 		b.WriteString(fmt.Sprintf("  4. Subscribe: make -C %s subscribe\n\n", outputDir))
 
-		b.WriteString("All-in-one workflow (build + push + subscribe):\n")
+		b.WriteString("All-in-one workflow (build + push + deploy + subscribe):\n")
 		b.WriteString(fmt.Sprintf("  make -C %s all\n\n", outputDir))
 	} else {
 		b.WriteString("Step-by-step workflow:\n")
 		b.WriteString(fmt.Sprintf("  1. Build:  make -C %s build-catalog-image\n", outputDir))
 		b.WriteString(fmt.Sprintf("  2. Push:   make -C %s push-catalog-image\n", outputDir))
-		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy\n\n", outputDir))
+		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy-catalog\n\n", outputDir))
+
+		b.WriteString("Shortcut for catalog only (build + push + deploy):\n")
+		b.WriteString(fmt.Sprintf("  make -C %s build-and-deploy-catalog\n\n", outputDir))
 
 		b.WriteString("After deploying, the catalog will be available in the OpenShift Console's\n")
 		b.WriteString("OperatorHub where you can manually install the bpfman operator.\n\n")
 
-		b.WriteString("For automatic installation (optional):\n")
+		b.WriteString("For automatic subscription (will install the operator):\n")
 		b.WriteString(fmt.Sprintf("  4. Subscribe: make -C %s subscribe\n\n", outputDir))
 
-		b.WriteString("All-in-one workflow (build + push + subscribe):\n")
+		b.WriteString("All-in-one workflow (build + push + deploy + subscribe):\n")
 		b.WriteString(fmt.Sprintf("  make -C %s all\n\n", outputDir))
 	}
 

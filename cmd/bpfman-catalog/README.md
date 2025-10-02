@@ -16,7 +16,7 @@ This tool deploys bpfman operator versions from pre-release catalogs or custom b
 ```bash
 # Generate deployment manifests from a pre-built catalog image
 bpfman-catalog generate-manifests --from-catalog quay.io/namespace/catalog@sha256:abc123... --output-dir ./deploy
-kubectl apply -f ./deploy
+kubectl apply -f ./deploy/catalog/
 ```
 
 ### Generate Catalog from Bundle
@@ -32,7 +32,7 @@ podman push ttl.sh/unique-uuid:1h
 
 # Generate deployment manifests from the catalog
 bpfman-catalog generate-manifests --from-catalog ttl.sh/unique-uuid:1h --output-dir ./deploy
-kubectl apply -f ./deploy
+kubectl apply -f ./deploy/catalog/
 ```
 
 ## Operations Guide

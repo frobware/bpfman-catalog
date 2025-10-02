@@ -3,6 +3,7 @@ package manifests
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/openshift/bpfman-catalog/pkg/catalog"
 )
@@ -124,7 +125,7 @@ func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 		Spec: CatalogSourceSpec{
 			SourceType:  "grpc",
 			Image:       meta.Image,
-			DisplayName: fmt.Sprintf("BPFman Operator Catalog (%s)", meta.CatalogType),
+			DisplayName: fmt.Sprintf("BPFman Operator Catalog (%s - %s)", meta.ShortDigest, time.Now().Format("2006-01-02 15:04:05")),
 			Publisher:   "bpfman-catalog-cli",
 		},
 	}
