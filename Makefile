@@ -8,7 +8,7 @@ COMMIT ?= $(shell git rev-parse HEAD)
 
 # Image building tool - podman only for catalog generation
 OCI_BIN_PATH := $(shell which podman)
-OCI_BIN ?= $(shell basename ${OCI_BIN_PATH})
+OCI_BIN ?= $(shell if [ -n "${OCI_BIN_PATH}" ]; then basename ${OCI_BIN_PATH}; else echo "podman"; fi)
 export OCI_BIN
 
 LOCALBIN ?= $(shell pwd)/bin
