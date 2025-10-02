@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
+	"github.com/openshift/bpfman-catalog/pkg/analysis"
 	"github.com/openshift/bpfman-catalog/pkg/bundle"
 	"github.com/openshift/bpfman-catalog/pkg/manifests"
 	"github.com/openshift/bpfman-catalog/pkg/writer"
@@ -26,6 +27,7 @@ type GlobalContext struct {
 type CLI struct {
 	GenerateArtifacts GenerateArtifactsCmd `cmd:"generate-artifacts" help:"Generate catalog build artifacts from bundle image"`
 	GenerateManifests GenerateManifestsCmd `cmd:"generate-manifests" help:"Generate Kubernetes manifests from catalog image"`
+	Analyze           AnalyzeBundleCmd     `cmd:"analyze" help:"Analyze bundle contents and dependencies"`
 
 	// Global flags
 	LogLevel  string `env:"LOG_LEVEL" default:"info" help:"Log level (debug, info, warn, error)"`
@@ -43,6 +45,13 @@ type GenerateArtifactsCmd struct {
 type GenerateManifestsCmd struct {
 	FromCatalog string `required:"" help:"Catalog image reference"`
 	OutputDir   string `default:"./manifests" help:"Output directory for generated manifests"`
+}
+
+// AnalyzeBundleCmd analyzes bundle contents and dependencies
+type AnalyzeBundleCmd struct {
+	BundleImage string `arg:"" required:"" help:"Bundle image reference to analyze"`
+	Format      string `default:"text" enum:"text,json" help:"Output format (text, json)"`
+	ShowAll     bool   `help:"Show all images including inaccessible ones"`
 }
 
 func (r *GenerateArtifactsCmd) Run(globals *GlobalContext) error {
@@ -141,6 +150,38 @@ func (r *GenerateManifestsCmd) Run(globals *GlobalContext) error {
 
 	fmt.Printf("Manifests generated in %s\n", r.OutputDir)
 	fmt.Printf("To apply: kubectl apply -f %s\n", r.OutputDir)
+	return nil
+}
+
+func (r *AnalyzeBundleCmd) Run(globals *GlobalContext) error {
+	logger := globals.Logger
+	logger.Debug("analyzing bundle",
+		slog.String("bundle_image", r.BundleImage),
+		slog.String("format", r.Format),
+		slog.Bool("show_all", r.ShowAll))
+
+	config := analysis.AnalyzeConfig{
+		ShowAll: r.ShowAll,
+	}
+
+	result, err := analysis.AnalyzeBundleWithConfig(globals.Context, r.BundleImage, config)
+	if err != nil {
+		logger.Debug("bundle analysis failed", slog.String("error", err.Error()))
+		return fmt.Errorf("failed to analyze bundle: %w", err)
+	}
+
+	output, err := analysis.FormatResult(result, r.Format)
+	if err != nil {
+		logger.Debug("output formatting failed", slog.String("error", err.Error()))
+		return fmt.Errorf("failed to format output: %w", err)
+	}
+
+	fmt.Print(output)
+
+	logger.Debug("bundle analysis completed successfully",
+		slog.Int("total_images", result.Summary.TotalImages),
+		slog.Int("accessible_images", result.Summary.AccessibleImages))
+
 	return nil
 }
 
