@@ -41,7 +41,10 @@ undeploy:
 	kubectl delete configmap bpfman-config -n bpfman --ignore-not-found
 	kubectl wait --for=delete configmap/bpfman-config -n bpfman --timeout=60s
 	@echo "Removing all bpfman-catalog-cli resources..."
-	kubectl delete all,imagedigestmirrorset,catalogsource,operatorgroup,subscription,namespace -l app.kubernetes.io/created-by=bpfman-catalog-cli --ignore-not-found
+	kubectl delete all -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
+	kubectl delete catalogsource,operatorgroup,subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
+	kubectl delete imagedigestmirrorset -l app.kubernetes.io/created-by=bpfman-catalog-cli --ignore-not-found
+	kubectl delete namespace -l app.kubernetes.io/created-by=bpfman-catalog-cli --ignore-not-found
 
 .PHONY: all
 all: build-catalog-image push-catalog-image subscribe
