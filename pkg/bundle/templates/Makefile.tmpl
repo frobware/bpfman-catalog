@@ -34,7 +34,7 @@ subscribe: deploy
 
 .PHONY: undeploy
 undeploy:
-	kubectl delete -f ./manifests/ 2>/dev/null || true
+	kubectl delete -f ./manifests/ --ignore-not-found
 
 .PHONY: all
 all: build-catalog-image push-catalog-image subscribe
