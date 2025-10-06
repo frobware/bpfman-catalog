@@ -24,7 +24,7 @@ deploy-catalog:
 	$(eval IMAGE_BASE := $(shell echo $(IMAGE) | sed 's/:.*$$//'))
 	$(eval IMAGE_WITH_DIGEST := $(IMAGE_BASE)@$(DIGEST))
 	@echo "Deploying catalog infrastructure with digest: $(IMAGE_WITH_DIGEST)"
-	$(BPFMAN_CATALOG) generate-manifests --from-catalog $(IMAGE_WITH_DIGEST) --output-dir ./manifests
+	$(BPFMAN_CATALOG) prepare-catalog-deployment --from-catalog $(IMAGE_WITH_DIGEST) --output-dir ./manifests
 	kubectl apply -f ./manifests/catalog/
 
 .PHONY: build-and-deploy-catalog

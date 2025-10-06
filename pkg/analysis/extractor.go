@@ -3,126 +3,65 @@ package analysis
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/openshift/bpfman-catalog/pkg/bundle"
-	"sigs.k8s.io/yaml"
+	"github.com/operator-framework/operator-registry/alpha/action"
+	"github.com/operator-framework/operator-registry/alpha/action/migrations"
+	"github.com/operator-framework/operator-registry/pkg/containertools"
+	"github.com/operator-framework/operator-registry/pkg/image/execregistry"
+	"github.com/sirupsen/logrus"
 )
 
-// ExtractImageReferences extracts all image references from a bundle image using existing bundle processing logic.
+// ExtractImageReferences extracts all image references from a bundle image by directly inspecting it.
 func ExtractImageReferences(ctx context.Context, bundleRef ImageRef) ([]string, error) {
-	// Generate FBC template from the bundle
-	fbcTemplate, err := bundle.GenerateFBCTemplate(bundleRef.String(), "preview")
+	// Suppress noisy INFO logs from operator-registry library
+	logrus.SetLevel(logrus.WarnLevel)
+
+	logger := logrus.NewEntry(logrus.New())
+	logger.Logger.SetLevel(logrus.WarnLevel)
+
+	// Create registry client
+	registry, err := execregistry.NewRegistry(containertools.PodmanTool, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate FBC template: %w", err)
+		return nil, fmt.Errorf("creating image registry: %w", err)
+	}
+	defer registry.Destroy()
+
+	// Create migrations
+	migs, err := migrations.NewMigrations("bundle-object-to-csv-metadata")
+	if err != nil {
+		return nil, fmt.Errorf("creating migrations: %w", err)
 	}
 
-	// Render the catalog to get processed bundle content
-	catalogYAML, err := bundle.RenderCatalog(ctx, fbcTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to render catalog: %w", err)
+	// Render the bundle to get its declarative config
+	r := action.Render{
+		Refs:           []string{bundleRef.String()},
+		Registry:       registry,
+		AllowedRefMask: action.RefBundleImage,
+		Migrations:     migs,
 	}
 
-	// Parse image references from the rendered catalog
-	images, err := parseImageReferencesFromYAML([]byte(catalogYAML))
+	cfg, err := r.Run(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse image references: %w", err)
+		return nil, fmt.Errorf("rendering bundle: %w", err)
+	}
+
+	// Extract image references from all bundles
+	var images []string
+	for _, bundle := range cfg.Bundles {
+		// Add the bundle image itself
+		if bundle.Image != "" {
+			images = append(images, bundle.Image)
+		}
+
+		// Add all related images
+		for _, relatedImage := range bundle.RelatedImages {
+			if relatedImage.Image != "" {
+				images = append(images, relatedImage.Image)
+			}
+		}
 	}
 
 	return deduplicateStrings(images), nil
-}
-
-// parseImageReferencesFromYAML extracts image references from YAML content.
-func parseImageReferencesFromYAML(data []byte) ([]string, error) {
-	// Parse as YAML documents (bundle may contain multiple)
-	documents := strings.Split(string(data), "---")
-	var allImages []string
-
-	for _, doc := range documents {
-		doc = strings.TrimSpace(doc)
-		if doc == "" {
-			continue
-		}
-
-		var parsed interface{}
-		if err := yaml.Unmarshal([]byte(doc), &parsed); err != nil {
-			// Skip documents that can't be parsed as YAML
-			continue
-		}
-
-		images := extractImagesFromParsedYAML(parsed)
-		allImages = append(allImages, images...)
-	}
-
-	return allImages, nil
-}
-
-// extractImagesFromParsedYAML recursively extracts image references from parsed YAML.
-func extractImagesFromParsedYAML(data interface{}) []string {
-	var images []string
-
-	switch v := data.(type) {
-	case map[string]interface{}:
-		// Check for image fields at this level
-		if img, ok := v["image"].(string); ok && img != "" && isValidImageRef(img) {
-			images = append(images, img)
-		}
-
-		// Recursively check all values
-		for _, value := range v {
-			childImages := extractImagesFromParsedYAML(value)
-			images = append(images, childImages...)
-		}
-
-	case []interface{}:
-		// Recursively check array elements
-		for _, item := range v {
-			childImages := extractImagesFromParsedYAML(item)
-			images = append(images, childImages...)
-		}
-
-	case string:
-		// Check if the string itself is an image reference
-		if isValidImageRef(v) {
-			images = append(images, v)
-		}
-	}
-
-	return images
-}
-
-// isValidImageRef checks if a string looks like a container image reference.
-func isValidImageRef(s string) bool {
-	if s == "" {
-		return false
-	}
-
-	// Must contain a registry (domain with dots or localhost)
-	if !strings.Contains(s, "/") {
-		return false
-	}
-
-	// Should contain a digest (@sha256:) or tag (:)
-	hasDigest := strings.Contains(s, "@sha256:")
-	hasTag := strings.Contains(s, ":") && !hasDigest
-
-	if !hasDigest && !hasTag {
-		return false
-	}
-
-	// Must look like a registry path
-	parts := strings.Split(s, "/")
-	if len(parts) < 2 {
-		return false
-	}
-
-	// First part should look like a registry (contain dots or be localhost)
-	registry := parts[0]
-	if !strings.Contains(registry, ".") && registry != "localhost" {
-		return false
-	}
-
-	return true
 }
 
 // deduplicateStrings removes duplicate strings from a slice.

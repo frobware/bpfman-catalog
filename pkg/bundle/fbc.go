@@ -28,6 +28,9 @@ import (
 //go:embed templates/Makefile.tmpl
 var makefileTemplate string
 
+//go:embed templates/WORKFLOW.txt.tmpl
+var workflowTemplate string
+
 // generateRandomTTL generates a random TTL between 15m and 30m for ttl.sh
 func generateRandomTTL() string {
 	// Seed random number generator with current time
@@ -70,7 +73,8 @@ type ChannelEntry struct {
 
 // ChannelEntryItem represents an entry in a channel
 type ChannelEntryItem struct {
-	Name string `yaml:"name"`
+	Name     string `yaml:"name"`
+	Replaces string `yaml:"replaces,omitempty"`
 }
 
 // BundleEntry defines an OLM bundle
@@ -126,6 +130,126 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 	}
 
 	return template, nil
+}
+
+// GenerateMultiBundleFBCTemplate generates an FBC template for multiple bundle images
+func GenerateMultiBundleFBCTemplate(ctx context.Context, bundles []*BundleMetadata, channel string) (*FBCTemplate, error) {
+	if len(bundles) == 0 {
+		return nil, fmt.Errorf("no bundles provided")
+	}
+
+	if channel == "" {
+		channel = "preview"
+	}
+
+	// Extract bundle info for all bundles
+	var bundleInfos []struct {
+		info  *BundleInfo
+		image string
+		meta  *BundleMetadata
+	}
+
+	for _, b := range bundles {
+		info, err := extractBundleInfo(b.Image)
+		if err != nil {
+			return nil, fmt.Errorf("extracting bundle info for %s: %w", b.Image, err)
+		}
+		bundleInfos = append(bundleInfos, struct {
+			info  *BundleInfo
+			image string
+			meta  *BundleMetadata
+		}{info, b.Image, b})
+	}
+
+	// Use package name from first bundle
+	packageName := bundleInfos[0].info.Package
+
+	// Build channel entries with replaces chain
+	var channelEntries []ChannelEntryItem
+	for i, bi := range bundleInfos {
+		// Generate catalog entry name: bpfman-operator.v{VERSION}-g{SHORT_SHA}-{TIMESTAMP}
+		catalogName := generateCatalogEntryName(bi.meta)
+
+		entry := ChannelEntryItem{
+			Name: catalogName,
+		}
+
+		// Add replaces field for all except the oldest
+		if i > 0 {
+			prevName := generateCatalogEntryName(bundleInfos[i-1].meta)
+			entry.Replaces = prevName
+		}
+
+		channelEntries = append(channelEntries, entry)
+	}
+
+	// Build bundle entries
+	var entries []interface{}
+	entries = append(entries, PackageEntry{
+		Schema:         "olm.package",
+		Name:           packageName,
+		DefaultChannel: channel,
+	})
+
+	entries = append(entries, ChannelEntry{
+		Schema:  "olm.channel",
+		Package: packageName,
+		Name:    channel,
+		Entries: channelEntries,
+	})
+
+	for _, bi := range bundleInfos {
+		catalogName := generateCatalogEntryName(bi.meta)
+		entries = append(entries, BundleEntry{
+			Schema: "olm.bundle",
+			Image:  bi.image,
+			Name:   catalogName,
+		})
+	}
+
+	template := &FBCTemplate{
+		Schema:  "olm.template.basic",
+		Entries: entries,
+	}
+
+	return template, nil
+}
+
+// generateCatalogEntryName generates a catalog entry name from bundle metadata
+// Format: bpfman-operator.v{VERSION}-g{SHORT_SHA}-{TIMESTAMP}
+func generateCatalogEntryName(meta *BundleMetadata) string {
+	// Use version as-is from metadata
+	version := meta.Version
+
+	// Get short SHA (first 8 chars)
+	shortSHA := meta.Tag
+	if len(shortSHA) > 8 {
+		shortSHA = shortSHA[:8]
+	}
+
+	// Format timestamp as YYYY-MM-DDTHHMM (keep date hyphens, remove time colons)
+	timestamp := ""
+	if meta.BuildDate != "" {
+		// BuildDate format: 2025-10-02T12:05:37Z
+		// Extract date and time parts
+		if len(meta.BuildDate) >= 16 {
+			datePart := meta.BuildDate[:10]                        // 2025-10-02
+			timePart := meta.BuildDate[11:16]                      // 12:05
+			timeFormatted := strings.ReplaceAll(timePart, ":", "") // 1205
+			timestamp = fmt.Sprintf("%sT%s", datePart, timeFormatted)
+		}
+	}
+
+	return fmt.Sprintf("bpfman-operator.v%s-g%s-%s", version, shortSHA, timestamp)
+}
+
+// MarshalFBCTemplate marshals an FBC template to YAML
+func MarshalFBCTemplate(template *FBCTemplate) (string, error) {
+	data, err := yaml.Marshal(template)
+	if err != nil {
+		return "", fmt.Errorf("marshaling FBC template: %w", err)
+	}
+	return string(data), nil
 }
 
 // RenderCatalog uses the OPM library to render the FBC template into a full catalog.
@@ -209,70 +333,6 @@ LABEL io.openshift.release.operator=true
 ENTRYPOINT ["/bin/opm"]
 CMD ["serve", "/configs"]
 `
-}
-
-// GenerateBuildInstructions generates instructions for the user
-func GenerateBuildInstructions(outputDir string, includeOpmStep bool, bundleImage string) string {
-	var b strings.Builder
-	// Use two UUIDs for maximum entropy and obfuscation
-	imageUUID := fmt.Sprintf("%s-%s", uuid.New().String(), uuid.New().String())
-
-	b.WriteString("Bundle artifacts generated successfully!\n\n")
-	b.WriteString("Generated files:\n")
-	b.WriteString(fmt.Sprintf("  %s/fbc-template.yaml   - FBC template for your bundle\n", outputDir))
-
-	if !includeOpmStep {
-		b.WriteString(fmt.Sprintf("  %s/catalog.yaml        - Rendered catalog (ready to build)\n", outputDir))
-	}
-
-	b.WriteString(fmt.Sprintf("  %s/Dockerfile.catalog  - Dockerfile for catalog image\n", outputDir))
-	b.WriteString(fmt.Sprintf("  %s/Makefile           - Makefile for automated build/push/deploy\n\n", outputDir))
-
-	b.WriteString("To deploy your catalog:\n\n")
-
-	if includeOpmStep {
-		b.WriteString("Step-by-step workflow:\n")
-		b.WriteString(fmt.Sprintf("  1. Build:  make -C %s build-catalog-image\n", outputDir))
-		b.WriteString(fmt.Sprintf("  2. Push:   make -C %s push-catalog-image\n", outputDir))
-		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy-catalog\n\n", outputDir))
-
-		b.WriteString("Shortcut for catalog only (build + push + deploy):\n")
-		b.WriteString(fmt.Sprintf("  make -C %s build-and-deploy-catalog\n\n", outputDir))
-
-		b.WriteString("After deploying, the catalog will be available in the OpenShift Console's\n")
-		b.WriteString("OperatorHub where you can manually install the bpfman operator.\n\n")
-
-		b.WriteString("For automatic subscription (will install the operator):\n")
-		b.WriteString(fmt.Sprintf("  4. Subscribe: make -C %s subscribe\n\n", outputDir))
-
-		b.WriteString("All-in-one workflow (build + push + deploy + subscribe):\n")
-		b.WriteString(fmt.Sprintf("  make -C %s all\n\n", outputDir))
-	} else {
-		b.WriteString("Step-by-step workflow:\n")
-		b.WriteString(fmt.Sprintf("  1. Build:  make -C %s build-catalog-image\n", outputDir))
-		b.WriteString(fmt.Sprintf("  2. Push:   make -C %s push-catalog-image\n", outputDir))
-		b.WriteString(fmt.Sprintf("  3. Deploy: make -C %s deploy-catalog\n\n", outputDir))
-
-		b.WriteString("Shortcut for catalog only (build + push + deploy):\n")
-		b.WriteString(fmt.Sprintf("  make -C %s build-and-deploy-catalog\n\n", outputDir))
-
-		b.WriteString("After deploying, the catalog will be available in the OpenShift Console's\n")
-		b.WriteString("OperatorHub where you can manually install the bpfman operator.\n\n")
-
-		b.WriteString("For automatic subscription (will install the operator):\n")
-		b.WriteString(fmt.Sprintf("  4. Subscribe: make -C %s subscribe\n\n", outputDir))
-
-		b.WriteString("All-in-one workflow (build + push + deploy + subscribe):\n")
-		b.WriteString(fmt.Sprintf("  make -C %s all\n\n", outputDir))
-	}
-
-	b.WriteString("Custom registry examples:\n")
-	randomTTL := generateRandomTTL()
-	b.WriteString(fmt.Sprintf("  make -C %s IMAGE=ttl.sh/%s:%s all\n", outputDir, imageUUID, randomTTL))
-	b.WriteString(fmt.Sprintf("  make -C %s IMAGE=quay.io/user/my-catalog all\n", outputDir))
-	b.WriteString(fmt.Sprintf("\nFor all options: make -C %s help\n", outputDir))
-
-	return b.String()
 }
 
 // extractDigestSuffix extracts the first 8 characters of a digest from an image reference
@@ -394,6 +454,37 @@ func GenerateMakefile(bundleImage, binaryPath string) string {
 	if err := tmpl.Execute(&buf, data); err != nil {
 		// Fallback to static template if execution fails
 		return fmt.Sprintf("# Error executing Makefile template: %v\n# Bundle: %s\n", err, bundleImage)
+	}
+
+	return buf.String()
+}
+
+// GenerateWorkflow generates a WORKFLOW.md file with deployment instructions
+func GenerateWorkflow(bundleCount int, catalogRendered bool) string {
+	// Generate random UUID and TTL for ttl.sh examples
+	imageUUID := fmt.Sprintf("%s-%s", uuid.New().String(), uuid.New().String())
+	randomTTL := generateRandomTTL()
+
+	tmpl, err := template.New("workflow").Parse(workflowTemplate)
+	if err != nil {
+		return fmt.Sprintf("# Error parsing WORKFLOW template: %v\n", err)
+	}
+
+	data := struct {
+		BundleCount     int
+		CatalogRendered bool
+		ImageUUID       string
+		RandomTTL       string
+	}{
+		BundleCount:     bundleCount,
+		CatalogRendered: catalogRendered,
+		ImageUUID:       imageUUID,
+		RandomTTL:       randomTTL,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return fmt.Sprintf("# Error executing WORKFLOW template: %v\n", err)
 	}
 
 	return buf.String()
