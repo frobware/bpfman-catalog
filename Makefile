@@ -158,28 +158,28 @@ test-cli: build-cli ## Test the CLI with a sample catalog
 	@ls -la /tmp/bpfman-catalog-test-manifests/catalog/
 
 .PHONY: test-cli-bundle
-test-cli-bundle: test-cli-bundle-library test-cli-bundle-binary ## Test the CLI with both rendering methods
+test-cli-bundle: test-cli-bundle-opm-library test-cli-bundle-opm-binary ## Test the CLI with both OPM rendering methods
 
-.PHONY: test-cli-bundle-library
-test-cli-bundle-library: build-cli ## Test the CLI with a sample bundle (library mode)
-	@echo "Testing with a sample bundle image (library mode)..."
-	@rm -rf /tmp/bpfman-catalog-test-bundle-library
+.PHONY: test-cli-bundle-opm-library
+test-cli-bundle-opm-library: build-cli ## Test the CLI with a sample bundle (OPM library mode)
+	@echo "Testing with a sample bundle image (OPM library mode)..."
+	@rm -rf /tmp/bpfman-catalog-test-bundle-opm-library
 	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build \
 		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
-		--output-dir /tmp/bpfman-catalog-test-bundle-library
-	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-library"
-	@ls -la /tmp/bpfman-catalog-test-bundle-library/
+		--output-dir /tmp/bpfman-catalog-test-bundle-opm-library
+	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-opm-library"
+	@ls -la /tmp/bpfman-catalog-test-bundle-opm-library/
 
-.PHONY: test-cli-bundle-binary
-test-cli-bundle-binary: build-cli ## Test the CLI with a sample bundle (binary mode)
-	@echo "Testing with a sample bundle image (binary mode)..."
-	@rm -rf /tmp/bpfman-catalog-test-bundle-binary
+.PHONY: test-cli-bundle-opm-binary
+test-cli-bundle-opm-binary: build-cli ## Test the CLI with a sample bundle (OPM binary mode)
+	@echo "Testing with a sample bundle image (OPM binary mode)..."
+	@rm -rf /tmp/bpfman-catalog-test-bundle-opm-binary
 	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build \
 		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
 		--omp-bin $(LOCALBIN)/opm \
-		--output-dir /tmp/bpfman-catalog-test-bundle-binary
-	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-binary"
-	@ls -la /tmp/bpfman-catalog-test-bundle-binary/
+		--output-dir /tmp/bpfman-catalog-test-bundle-opm-binary
+	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-opm-binary"
+	@ls -la /tmp/bpfman-catalog-test-bundle-opm-binary/
 
 ##@ General
 
