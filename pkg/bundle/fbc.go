@@ -459,8 +459,8 @@ func GenerateMakefile(bundleImage, binaryPath string) string {
 	return buf.String()
 }
 
-// GenerateWorkflow generates a WORKFLOW.md file with deployment instructions
-func GenerateWorkflow(bundleCount int, catalogRendered bool) string {
+// GenerateWorkflow generates a WORKFLOW.txt file with deployment instructions
+func GenerateWorkflow(bundleCount int, catalogRendered bool, outputDir string) string {
 	// Generate random UUID and TTL for ttl.sh examples
 	imageUUID := fmt.Sprintf("%s-%s", uuid.New().String(), uuid.New().String())
 	randomTTL := generateRandomTTL()
@@ -475,11 +475,13 @@ func GenerateWorkflow(bundleCount int, catalogRendered bool) string {
 		CatalogRendered bool
 		ImageUUID       string
 		RandomTTL       string
+		OutputDir       string
 	}{
 		BundleCount:     bundleCount,
 		CatalogRendered: catalogRendered,
 		ImageUUID:       imageUUID,
 		RandomTTL:       randomTTL,
+		OutputDir:       outputDir,
 	}
 
 	var buf bytes.Buffer

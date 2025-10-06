@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/created-by: bpfman-catalog-cli
+    app.kubernetes.io/name: bpfman-operator
+    app.kubernetes.io/version: latest
+    bpfman-catalog-cli: 7112a081
+    bpfman-catalog-cli/digest: 7112a081
+    openshift.io/cluster-monitoring: "true"
+  name: bpfman

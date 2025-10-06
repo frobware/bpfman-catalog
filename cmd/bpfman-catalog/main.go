@@ -180,7 +180,7 @@ func (r *PrepareCatalogBuildCmd) generateSingleBundle(globals *GlobalContext, bu
 
 	// Generate WORKFLOW.txt
 	catalogRendered := artifacts.CatalogYAML != ""
-	workflow := bundle.GenerateWorkflow(0, catalogRendered)
+	workflow := bundle.GenerateWorkflow(0, catalogRendered, r.OutputDir)
 	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
@@ -270,7 +270,7 @@ func (r *PrepareCatalogBuildCmd) generateMultiBundleWithMetadata(globals *Global
 	}
 
 	// Generate WORKFLOW.txt
-	workflow := bundle.GenerateWorkflow(len(bundleMetas), true)
+	workflow := bundle.GenerateWorkflow(len(bundleMetas), true, r.OutputDir)
 	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}

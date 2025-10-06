@@ -1,0 +1,10 @@
+---
+defaultChannel: preview
+name: bpfman-operator
+schema: olm.package
+---
+entries:
+- name: bpfman-operator.vnext
+name: preview
+package: bpfman-operator
+schema: olm.channel

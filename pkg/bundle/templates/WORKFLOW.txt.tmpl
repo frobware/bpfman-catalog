@@ -17,33 +17,33 @@ Generated Files:
 To Deploy Your Catalog:
 
 Step-by-step workflow:
-  1. Build:  $ make build-catalog-image
-  2. Push:   $ make push-catalog-image
-  3. Deploy: $ make deploy-catalog
+  1. Build:  $ make -C {{.OutputDir}} build-catalog-image
+  2. Push:   $ make -C {{.OutputDir}} push-catalog-image
+  3. Deploy: $ make -C {{.OutputDir}} deploy-catalog
 
 Shortcut for catalog only (build + push + deploy):
-  $ make build-and-deploy-catalog
+  $ make -C {{.OutputDir}} build-and-deploy-catalog
 
 After deploying, the catalog will be available in the OpenShift Console's
 OperatorHub where you can manually install the bpfman operator.
 
 For automatic subscription (will install the operator):
-  4. Subscribe: $ make subscribe
+  4. Subscribe: $ make -C {{.OutputDir}} subscribe
 
 All-in-one workflow (build + push + deploy + subscribe):
-  $ make all
+  $ make -C {{.OutputDir}} all
 
 Custom Registry Examples:
 
 Ephemeral testing with ttl.sh:
-  $ make IMAGE=ttl.sh/{{.ImageUUID}}:{{.RandomTTL}} all
+  $ make -C {{.OutputDir}} IMAGE=ttl.sh/{{.ImageUUID}}:{{.RandomTTL}} all
 
 Persistent storage with quay.io:
-  $ make IMAGE=quay.io/user/my-catalog all
+  $ make -C {{.OutputDir}} IMAGE=quay.io/user/my-catalog all
 
 Available Makefile Targets:
-  Run $ make help to see all available targets and options.
+  Run $ make -C {{.OutputDir}} help to see all available targets and options.
 
 Cleanup:
   To remove all deployed resources:
-  $ make undeploy
+  $ make -C {{.OutputDir}} undeploy

@@ -1,0 +1,16 @@
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  labels:
+    app.kubernetes.io/created-by: bpfman-catalog-cli
+    app.kubernetes.io/name: bpfman-operator
+    app.kubernetes.io/version: latest
+    bpfman-catalog-cli: 7112a081
+    bpfman-catalog-cli/digest: 7112a081
+  name: bpfman-idms-sha-7112a081
+spec:
+  imageDigestMirrors:
+  - mirrors:
+    - registry.stage.redhat.io/openshift4
+    - registry-proxy.engineering.redhat.com/rh-osbs/openshift4
+    source: registry.redhat.io/openshift4
