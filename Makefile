@@ -150,11 +150,12 @@ install-cli: build-cli ## Install the bpfman-catalog CLI to /usr/local/bin
 test-cli: build-cli ## Test the CLI with a sample catalog
 	@echo "Testing with a sample catalog image..."
 	@echo "Note: Use 'make test-cli-bundle' to test bundle support"
+	@rm -rf /tmp/bpfman-catalog-test-manifests
 	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-deployment \
 		--from-catalog quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest \
-		--output-dir /tmp/test-manifests
-	@echo "Test manifests generated in /tmp/test-manifests"
-	@ls -la /tmp/test-manifests/
+		--output-dir /tmp/bpfman-catalog-test-manifests
+	@echo "Test manifests generated in /tmp/bpfman-catalog-test-manifests"
+	@ls -la /tmp/bpfman-catalog-test-manifests/catalog/
 
 .PHONY: test-cli-bundle
 test-cli-bundle: test-cli-bundle-library test-cli-bundle-binary ## Test the CLI with both rendering methods
@@ -162,21 +163,23 @@ test-cli-bundle: test-cli-bundle-library test-cli-bundle-binary ## Test the CLI 
 .PHONY: test-cli-bundle-library
 test-cli-bundle-library: build-cli ## Test the CLI with a sample bundle (library mode)
 	@echo "Testing with a sample bundle image (library mode)..."
+	@rm -rf /tmp/bpfman-catalog-test-bundle-library
 	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build \
-		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream@sha256:910d39b46fd7dc10b250c6e43e1f93b046142830f7e42432708be93f23b2a09b \
-		--output-dir /tmp/test-bundle-library
-	@echo "Bundle artifacts generated in /tmp/test-bundle-library"
-	@ls -la /tmp/test-bundle-library/
+		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
+		--output-dir /tmp/bpfman-catalog-test-bundle-library
+	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-library"
+	@ls -la /tmp/bpfman-catalog-test-bundle-library/
 
 .PHONY: test-cli-bundle-binary
 test-cli-bundle-binary: build-cli ## Test the CLI with a sample bundle (binary mode)
 	@echo "Testing with a sample bundle image (binary mode)..."
+	@rm -rf /tmp/bpfman-catalog-test-bundle-binary
 	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build \
-		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream@sha256:910d39b46fd7dc10b250c6e43e1f93b046142830f7e42432708be93f23b2a09b \
+		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
 		--omp-bin $(LOCALBIN)/opm \
-		--output-dir /tmp/test-bundle-binary
-	@echo "Bundle artifacts generated in /tmp/test-bundle-binary"
-	@ls -la /tmp/test-bundle-binary/
+		--output-dir /tmp/bpfman-catalog-test-bundle-binary
+	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-binary"
+	@ls -la /tmp/bpfman-catalog-test-bundle-binary/
 
 ##@ General
 
