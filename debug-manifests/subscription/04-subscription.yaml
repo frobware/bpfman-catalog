@@ -1,0 +1,17 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    app.kubernetes.io/created-by: bpfman-catalog-cli
+    app.kubernetes.io/name: bpfman-operator
+    app.kubernetes.io/version: latest
+    bpfman-catalog-cli: 7112a081
+    bpfman-catalog-cli/digest: 7112a081
+  name: bpfman-subscription-sha-7112a081
+  namespace: bpfman
+spec:
+  channel: preview
+  installPlanApproval: Automatic
+  name: bpfman-operator
+  source: bpfman-catalogsource-sha-7112a081
+  sourceNamespace: openshift-marketplace

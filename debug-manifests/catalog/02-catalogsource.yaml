@@ -1,0 +1,16 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  labels:
+    app.kubernetes.io/created-by: bpfman-catalog-cli
+    app.kubernetes.io/name: bpfman-operator
+    app.kubernetes.io/version: latest
+    bpfman-catalog-cli: 7112a081
+    bpfman-catalog-cli/digest: 7112a081
+  name: bpfman-catalogsource-sha-7112a081
+  namespace: openshift-marketplace
+spec:
+  displayName: BPFman Operator Catalog (ephemeral-7112a081 - 2025-10-02 19:49:09)
+  image: ttl.sh/c2eb6ab1-d628-445b-9f28-8041bb67cf4b@sha256:7112a081cd910687a504ce0fcb6678fe88bc30db0f0737d8e8d72212456f6d9f
+  publisher: bpfman-catalog-cli (ephemeral-7112a081 - 2025-10-02 19:49:09)
+  sourceType: grpc

@@ -1,0 +1,12 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  labels:
+    app.kubernetes.io/created-by: bpfman-catalog-cli
+    app.kubernetes.io/name: bpfman-operator
+    app.kubernetes.io/version: latest
+    bpfman-catalog-cli: ab4b7126
+    bpfman-catalog-cli/digest: ab4b7126
+  name: bpfman-operatorgroup-sha-ab4b7126
+  namespace: bpfman-sha-ab4b7126
+spec: {}

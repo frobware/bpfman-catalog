@@ -1,11 +1,11 @@
 ---
-defaultChannel: stable
+defaultChannel: preview-sha-910d39b4
 name: bpfman-operator
 schema: olm.package
 ---
 entries:
 - name: bpfman-operator.v0.5.7-dev
-name: stable
+name: preview-sha-910d39b4
 package: bpfman-operator
 schema: olm.channel
 ---
