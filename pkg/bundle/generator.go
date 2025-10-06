@@ -10,11 +10,10 @@ import (
 
 // Artifacts contains generated files for building a catalog from a bundle
 type Artifacts struct {
-	FBCTemplate  string // FBC template YAML
-	CatalogYAML  string // Rendered catalog (if opm is available)
-	Dockerfile   string // Dockerfile for building catalog image
-	Makefile     string // Makefile for building and deploying catalog
-	Instructions string // Build and deploy instructions
+	FBCTemplate string // FBC template YAML
+	CatalogYAML string // Rendered catalog (if opm is available)
+	Dockerfile  string // Dockerfile for building catalog image
+	Makefile    string // Makefile for building and deploying catalog
 }
 
 // Generator handles bundle to catalog conversion
@@ -83,13 +82,10 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 	}
 
 	if err != nil {
-		// If rendering fails, provide instructions for manual rendering
-		artifacts.Instructions = GenerateBuildInstructions(".", true, g.bundleImage)
-		artifacts.Instructions = fmt.Sprintf("WARNING: Could not render catalog automatically: %v\n\n%s", err, artifacts.Instructions)
-	} else {
-		artifacts.CatalogYAML = catalogYAML
-		artifacts.Instructions = GenerateBuildInstructions(".", false, g.bundleImage)
+		// If rendering fails, catalog will be empty and main.go will handle it
+		return artifacts, fmt.Errorf("rendering catalog: %w", err)
 	}
 
+	artifacts.CatalogYAML = catalogYAML
 	return artifacts, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -25,24 +26,28 @@ type GlobalContext struct {
 
 // CLI defines the command-line interface structure
 type CLI struct {
-	GenerateArtifacts GenerateArtifactsCmd `cmd:"generate-artifacts" help:"Generate catalog build artifacts from bundle image"`
-	GenerateManifests GenerateManifestsCmd `cmd:"generate-manifests" help:"Generate Kubernetes manifests from catalog image"`
-	Analyze           AnalyzeBundleCmd     `cmd:"analyze" help:"Analyze bundle contents and dependencies"`
+	PrepareCatalogBuild      PrepareCatalogBuildCmd      `cmd:"prepare-catalog-build" help:"Prepare catalog build artifacts from bundle image(s) (via positional args, --from-latest-bundles, or --from-bundles-json)"`
+	PrepareCatalogDeployment PrepareCatalogDeploymentCmd `cmd:"prepare-catalog-deployment" help:"Prepare deployment manifests from existing catalog image"`
+	AnalyzeBundle            AnalyzeBundleCmd            `cmd:"analyze-bundle" help:"Analyze bundle contents and dependencies"`
+	ListBundles              ListBundlesCmd              `cmd:"list-bundles" help:"List available bundle images"`
 
 	// Global flags
 	LogLevel  string `env:"LOG_LEVEL" default:"info" help:"Log level (debug, info, warn, error)"`
 	LogFormat string `env:"LOG_FORMAT" default:"text" help:"Log format (text, json)"`
 }
 
-// GenerateArtifactsCmd generates catalog build artifacts from bundle
-type GenerateArtifactsCmd struct {
-	FromBundle string `required:"" help:"Bundle image reference"`
-	OutputDir  string `default:"./artifacts" help:"Output directory for generated artifacts"`
-	OmpBin     string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
+// PrepareCatalogBuildCmd prepares catalog build artifacts from bundle image(s)
+type PrepareCatalogBuildCmd struct {
+	FromBundle        string   `help:"Single bundle image reference (deprecated, use positional args)"`
+	FromLatestBundles int      `help:"Auto-fetch N latest bundles from default repository"`
+	FromBundlesJSON   string   `type:"path" help:"Path to JSON file with bundle metadata (from list-bundles --format json)"`
+	OutputDir         string   `default:"./artifacts" help:"Output directory for generated artifacts"`
+	OmpBin            string   `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
+	Bundles           []string `arg:"" optional:"" help:"Bundle image references"`
 }
 
-// GenerateManifestsCmd generates Kubernetes manifests from catalog
-type GenerateManifestsCmd struct {
+// PrepareCatalogDeploymentCmd prepares deployment manifests from catalog image
+type PrepareCatalogDeploymentCmd struct {
 	FromCatalog string `required:"" help:"Catalog image reference"`
 	OutputDir   string `default:"./manifests" help:"Output directory for generated manifests"`
 }
@@ -54,25 +59,98 @@ type AnalyzeBundleCmd struct {
 	ShowAll     bool   `help:"Show all images including inaccessible ones"`
 }
 
-func (r *GenerateArtifactsCmd) Run(globals *GlobalContext) error {
+// ListBundlesCmd lists available bundle images
+type ListBundlesCmd struct {
+	Repository string `help:"Bundle repository (default: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream)"`
+	List       int    `default:"1" help:"Number of latest bundles to list"`
+	Format     string `default:"text" enum:"text,json" help:"Output format (text, json)"`
+}
+
+func (r *PrepareCatalogBuildCmd) Run(globals *GlobalContext) error {
 	// Validate output directory - prevent overwriting current directory
 	if filepath.Clean(r.OutputDir) == "." {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
 	}
 
 	logger := globals.Logger
+
+	// Determine bundle source(s)
+	var bundles []string
+	var bundleMetas []*bundle.BundleMetadata
+
+	if r.FromBundlesJSON != "" {
+		// Load bundle metadata from JSON file
+		logger.Debug("loading bundle metadata from JSON", slog.String("file", r.FromBundlesJSON))
+		data, err := os.ReadFile(r.FromBundlesJSON)
+		if err != nil {
+			return fmt.Errorf("reading bundles JSON file: %w", err)
+		}
+
+		var jsonData struct {
+			Bundles []*bundle.BundleMetadata `json:"bundles"`
+		}
+		if err := json.Unmarshal(data, &jsonData); err != nil {
+			return fmt.Errorf("parsing bundles JSON: %w", err)
+		}
+
+		if len(jsonData.Bundles) == 0 {
+			return fmt.Errorf("no bundles found in JSON file")
+		}
+
+		bundleMetas = jsonData.Bundles
+		for _, meta := range bundleMetas {
+			bundles = append(bundles, meta.Image)
+		}
+	} else if r.FromLatestBundles > 0 {
+		// Auto-fetch N latest bundles
+		logger.Debug("fetching latest bundles", slog.Int("count", r.FromLatestBundles))
+		bundleRef := bundle.NewDefaultBundleRef()
+		var err error
+		bundleMetas, err = bundle.ListLatestBundles(globals.Context, bundleRef, r.FromLatestBundles)
+		if err != nil {
+			return fmt.Errorf("fetching latest bundles: %w", err)
+		}
+		for _, meta := range bundleMetas {
+			bundles = append(bundles, meta.Image)
+		}
+	} else if len(r.Bundles) > 0 {
+		// Use positional args
+		bundles = r.Bundles
+	} else if r.FromBundle != "" {
+		// Use deprecated --from-bundle flag (single bundle)
+		bundles = []string{r.FromBundle}
+	} else {
+		return fmt.Errorf("no bundle source specified: use positional args, --from-bundle, --from-latest-bundles, or --from-bundles-json")
+	}
+
 	logger.Debug("generating artifacts",
 		slog.String("output_dir", r.OutputDir),
-		slog.String("from_bundle", r.FromBundle))
+		slog.Int("bundle_count", len(bundles)))
 
-	logger.Debug("generating catalog artifacts from bundle", slog.String("bundle", r.FromBundle))
+	// Handle single vs multiple bundles
+	if len(bundles) == 1 {
+		// Single bundle - use existing Generator
+		return r.generateSingleBundle(globals, bundles[0])
+	}
+
+	// Multiple bundles - use new multi-bundle generator
+	// If we have metadata already (from JSON or list-bundles), use it
+	if bundleMetas != nil && len(bundleMetas) > 0 {
+		return r.generateMultiBundleWithMetadata(globals, bundleMetas)
+	}
+	return r.generateMultiBundle(globals, bundles)
+}
+
+func (r *PrepareCatalogBuildCmd) generateSingleBundle(globals *GlobalContext, bundleImage string) error {
+	logger := globals.Logger
+	logger.Debug("generating catalog artifacts from single bundle", slog.String("bundle", bundleImage))
 
 	var gen *bundle.Generator
 	if r.OmpBin != "" {
 		logger.Debug("using external opm binary", slog.String("omp_bin", r.OmpBin))
-		gen = bundle.NewGeneratorWithOmp(r.FromBundle, "preview", r.OmpBin)
+		gen = bundle.NewGeneratorWithOmp(bundleImage, "preview", r.OmpBin)
 	} else {
-		gen = bundle.NewGenerator(r.FromBundle, "preview")
+		gen = bundle.NewGenerator(bundleImage, "preview")
 	}
 
 	artifacts, err := gen.Generate(globals.Context)
@@ -81,37 +159,134 @@ func (r *GenerateArtifactsCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("generating bundle artifacts: %w", err)
 	}
 
-	writer := writer.New(r.OutputDir)
+	w := writer.New(r.OutputDir)
 
-	if err := writer.WriteSingle("fbc-template.yaml", []byte(artifacts.FBCTemplate)); err != nil {
+	if err := w.WriteSingle("fbc-template.yaml", []byte(artifacts.FBCTemplate)); err != nil {
 		return fmt.Errorf("writing FBC template: %w", err)
 	}
 
 	if artifacts.CatalogYAML != "" {
-		if err := writer.WriteSingle("catalog.yaml", []byte(artifacts.CatalogYAML)); err != nil {
+		if err := w.WriteSingle("catalog.yaml", []byte(artifacts.CatalogYAML)); err != nil {
 			return fmt.Errorf("writing catalog: %w", err)
 		}
 	}
 
-	if err := writer.WriteSingle("Dockerfile.catalog", []byte(artifacts.Dockerfile)); err != nil {
+	if err := w.WriteSingle("Dockerfile.catalog", []byte(artifacts.Dockerfile)); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
-	if err := writer.WriteSingle("Makefile", []byte(artifacts.Makefile)); err != nil {
+	if err := w.WriteSingle("Makefile", []byte(artifacts.Makefile)); err != nil {
 		return fmt.Errorf("writing Makefile: %w", err)
+	}
+
+	// Generate WORKFLOW.txt
+	catalogRendered := artifacts.CatalogYAML != ""
+	workflow := bundle.GenerateWorkflow(0, catalogRendered)
+	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
+		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
 
 	logger.Debug("bundle artifacts generated successfully",
 		slog.String("output_dir", r.OutputDir),
-		slog.Bool("catalog_rendered", artifacts.CatalogYAML != ""))
+		slog.Bool("catalog_rendered", catalogRendered))
 
-	// Generate build instructions with correct output directory
-	includeOpmStep := artifacts.CatalogYAML == ""
-	instructions := bundle.GenerateBuildInstructions(r.OutputDir, includeOpmStep, r.FromBundle)
-	fmt.Print(instructions)
+	// Print workflow content to screen
+	fmt.Print(workflow)
+	fmt.Printf("\n(This information is saved in %s/WORKFLOW.txt)\n", r.OutputDir)
 	return nil
 }
 
-func (r *GenerateManifestsCmd) Run(globals *GlobalContext) error {
+func (r *PrepareCatalogBuildCmd) generateMultiBundle(globals *GlobalContext, bundleImages []string) error {
+	logger := globals.Logger
+	logger.Debug("generating catalog artifacts from multiple bundles", slog.Int("count", len(bundleImages)))
+
+	// Fetch metadata for all bundles
+	var bundleMetas []*bundle.BundleMetadata
+	for _, img := range bundleImages {
+		// Parse bundle ref and extract metadata
+		bundleRef, err := bundle.ParseBundleRef(img)
+		if err != nil {
+			return fmt.Errorf("parsing bundle ref %s: %w", img, err)
+		}
+
+		// Extract tag from image
+		tag := ""
+		if idx := strings.LastIndex(img, ":"); idx != -1 && !strings.Contains(img[idx:], "@") {
+			tag = img[idx+1:]
+		}
+		if tag == "" {
+			return fmt.Errorf("bundle image must have a tag: %s", img)
+		}
+
+		meta, err := bundle.FetchBundleMetadataByTag(globals.Context, bundleRef, tag)
+		if err != nil {
+			return fmt.Errorf("fetching metadata for %s: %w", img, err)
+		}
+		bundleMetas = append(bundleMetas, meta)
+	}
+
+	return r.generateMultiBundleWithMetadata(globals, bundleMetas)
+}
+
+func (r *PrepareCatalogBuildCmd) generateMultiBundleWithMetadata(globals *GlobalContext, bundleMetas []*bundle.BundleMetadata) error {
+	logger := globals.Logger
+	logger.Debug("generating catalog artifacts from bundle metadata", slog.Int("count", len(bundleMetas)))
+
+	// Generate FBC template for multiple bundles
+	fbcTemplate, err := bundle.GenerateMultiBundleFBCTemplate(globals.Context, bundleMetas, "preview")
+	if err != nil {
+		return fmt.Errorf("generating multi-bundle FBC template: %w", err)
+	}
+
+	// Render catalog
+	catalogYAML, err := bundle.RenderCatalog(globals.Context, fbcTemplate)
+	if err != nil {
+		return fmt.Errorf("rendering catalog: %w", err)
+	}
+
+	// Write artifacts
+	w := writer.New(r.OutputDir)
+
+	fbcTemplateYAML, err := bundle.MarshalFBCTemplate(fbcTemplate)
+	if err != nil {
+		return fmt.Errorf("marshaling FBC template: %w", err)
+	}
+
+	if err := w.WriteSingle("fbc-template.yaml", []byte(fbcTemplateYAML)); err != nil {
+		return fmt.Errorf("writing FBC template: %w", err)
+	}
+
+	if err := w.WriteSingle("catalog.yaml", []byte(catalogYAML)); err != nil {
+		return fmt.Errorf("writing catalog: %w", err)
+	}
+
+	dockerfile := bundle.GenerateCatalogDockerfile()
+	if err := w.WriteSingle("Dockerfile.catalog", []byte(dockerfile)); err != nil {
+		return fmt.Errorf("writing Dockerfile: %w", err)
+	}
+
+	makefile := bundle.GenerateMakefile(bundleMetas[0].Image, "")
+	if err := w.WriteSingle("Makefile", []byte(makefile)); err != nil {
+		return fmt.Errorf("writing Makefile: %w", err)
+	}
+
+	// Generate WORKFLOW.txt
+	workflow := bundle.GenerateWorkflow(len(bundleMetas), true)
+	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
+		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
+	}
+
+	logger.Debug("multi-bundle artifacts generated successfully",
+		slog.String("output_dir", r.OutputDir),
+		slog.Int("bundle_count", len(bundleMetas)))
+
+	// Print workflow content to screen
+	fmt.Print(workflow)
+	fmt.Printf("\n(This information is saved in %s/WORKFLOW.txt)\n", r.OutputDir)
+
+	return nil
+}
+
+func (r *PrepareCatalogDeploymentCmd) Run(globals *GlobalContext) error {
 	// Validate output directory - prevent overwriting current directory
 	if filepath.Clean(r.OutputDir) == "." {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './manifests'")
@@ -185,17 +360,148 @@ func (r *AnalyzeBundleCmd) Run(globals *GlobalContext) error {
 	return nil
 }
 
+func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
+	logger := globals.Logger
+
+	// Determine bundle reference
+	var bundleRef bundle.BundleRef
+	var err error
+
+	if r.Repository != "" {
+		bundleRef, err = bundle.ParseBundleRef(r.Repository)
+		if err != nil {
+			return fmt.Errorf("parsing repository: %w", err)
+		}
+	} else {
+		bundleRef = bundle.NewDefaultBundleRef()
+	}
+
+	logger.Debug("listing bundles",
+		slog.String("repository", bundleRef.String()),
+		slog.Int("limit", r.List))
+
+	// Fetch latest bundles
+	bundles, err := bundle.ListLatestBundles(globals.Context, bundleRef, r.List)
+	if err != nil {
+		logger.Debug("failed to list bundles", slog.String("error", err.Error()))
+		return fmt.Errorf("listing bundles: %w", err)
+	}
+
+	// Format output
+	if r.Format == "json" {
+		output, err := formatBundlesJSON(bundles)
+		if err != nil {
+			return fmt.Errorf("formatting JSON output: %w", err)
+		}
+		fmt.Println(output)
+	} else {
+		formatBundlesText(bundles)
+	}
+
+	logger.Debug("bundles listed successfully", slog.Int("count", len(bundles)))
+	return nil
+}
+
+func formatBundlesText(bundles []*bundle.BundleMetadata) {
+	if len(bundles) == 1 {
+		// Single bundle - simple output
+		b := bundles[0]
+		fmt.Printf("%s@%s %s\n", b.Image[:strings.LastIndex(b.Image, ":")], b.Digest, b.BuildDate)
+	} else {
+		// Multiple bundles - list format
+		fmt.Printf("Latest %d bundles (sorted by build date, newest first):\n\n", len(bundles))
+		for _, b := range bundles {
+			imageBase := b.Image[:strings.LastIndex(b.Image, ":")]
+			fmt.Printf("%s@%s\n", imageBase, b.Digest)
+			fmt.Printf("  Tag: %s\n", b.Tag)
+			fmt.Printf("  Build Date: %s\n", b.BuildDate)
+			if b.Version != "" {
+				fmt.Printf("  Version: %s\n", b.Version)
+			}
+			fmt.Println()
+		}
+	}
+}
+
+func formatBundlesJSON(bundles []*bundle.BundleMetadata) (string, error) {
+	type output struct {
+		Count   int                      `json:"count"`
+		Bundles []*bundle.BundleMetadata `json:"bundles"`
+	}
+
+	out := output{
+		Count:   len(bundles),
+		Bundles: bundles,
+	}
+
+	data, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func printWorkflowGuide() {
+	fmt.Println()
+	fmt.Println("Workflow Guide:")
+	fmt.Println()
+	fmt.Println("1. Starting from bundle images:")
+	fmt.Println("   prepare-catalog-build → generates build artifacts")
+	fmt.Println("   └─ Produces: Dockerfile, catalog.yaml, fbc-template.yaml, Makefile")
+	fmt.Println("   └─ Next: Build catalog image, push to registry, deploy to cluster")
+	fmt.Println("            (use generated Makefile targets)")
+	fmt.Println()
+	fmt.Println("2. Starting from existing catalog image:")
+	fmt.Println("   prepare-catalog-deployment → generates Kubernetes manifests")
+	fmt.Println("   └─ Produces: CatalogSource, Namespace, OperatorGroup, Subscription")
+	fmt.Println("   └─ Next: kubectl apply -f ./manifests/")
+	fmt.Println()
+	fmt.Println("Example workflows:")
+	fmt.Println()
+	fmt.Println("  # Create catalog from latest 3 bundles")
+	fmt.Println("  $ bpfman-catalog prepare-catalog-build --from-latest-bundles 3")
+	fmt.Println("  $ make -C artifacts all")
+	fmt.Println("    → Builds, pushes catalog image, deploys to cluster, installs operator")
+	fmt.Println()
+	fmt.Println("  # Deploy existing catalog")
+	fmt.Println("  $ bpfman-catalog prepare-catalog-deployment --from-catalog registry.redhat.io/redhat/catalog:v4.20")
+	fmt.Println("  $ kubectl apply -f manifests/")
+	fmt.Println("    → Deploys catalog to cluster, makes operator available in OperatorHub")
+	fmt.Println()
+}
+
 func main() {
 	var cli CLI
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Check if help was requested to print workflow guide
+	showWorkflowGuide := false
+	for _, arg := range os.Args[1:] {
+		if arg == "--help" || arg == "-h" {
+			showWorkflowGuide = true
+			break
+		}
+	}
+
 	kongCtx := kong.Parse(&cli,
 		kong.Name("bpfman-catalog"),
 		kong.Description("Deploy and manage bpfman operator catalogs on OpenShift"),
 		kong.UsageOnError(),
+		kong.Exit(func(code int) {
+			// Print workflow guide before exiting on help
+			if showWorkflowGuide && len(os.Args) == 2 {
+				printWorkflowGuide()
+			}
+			os.Exit(code)
+		}),
 	)
+
+	// Print workflow guide after Kong help for non-exit cases
+	if showWorkflowGuide && len(os.Args) == 2 {
+		printWorkflowGuide()
+	}
 
 	logger := setupLogger(cli.LogLevel, cli.LogFormat)
 
