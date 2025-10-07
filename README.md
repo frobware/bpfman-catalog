@@ -13,11 +13,11 @@ The repository also includes a CLI tool (`bpfman-catalog`) for rapid deployment 
 ### Releases (Primary Use Case)
 
 ```bash
-# Edit templates/y-stream.yaml or templates/z-stream.yaml to update operator versions
-# Then regenerate catalogs
+# Edit templates/y-stream.yaml or templates/z-stream.yaml to update operator versions.
+# Then regenerate catalogs.
 make generate-catalogs
 
-# Commit the updated catalogs
+# Commit the updated catalogs.
 git add auto-generated/catalog/
 git commit -m "Update catalog for new release"
 ```
@@ -31,11 +31,11 @@ The generated catalogs are then built and deployed through CI/CD pipelines.
 For deploying and testing pre-built catalog images:
 
 ```bash
-# Build, push, and deploy catalog image
+# Build, push, and deploy catalog image.
 make build-image push-image deploy
 
-# Install operator via OpenShift console UI
-# Navigate to Operators → OperatorHub and install the operator
+# Install operator via OpenShift console UI.
+# Navigate to Operators → OperatorHub and install the operator.
 ```
 
 This uses `catalog-source.yaml` as a template to deploy the catalog image. Operator installation is manual via the console.
@@ -45,17 +45,17 @@ This uses `catalog-source.yaml` as a template to deploy the catalog image. Opera
 For testing individual bundle images with automated deployment:
 
 ```bash
-# Build the CLI tool
+# Build the CLI tool.
 make build-cli
 
-# Generate catalog from bundle with full automation
+# Generate catalog from bundle with full automation.
 ./bin/bpfman-catalog prepare-catalog-build-from-bundle \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 
-# Build, push, and auto-subscribe to operator
+# Build, push, and auto-subscribe to operator.
 make -C auto-generated/artefacts all
 
-# Clean up when done
+# Clean up when done.
 make -C auto-generated/artefacts undeploy
 ```
 
@@ -92,19 +92,19 @@ For formal releases, use the template-based workflow which builds catalog images
 **User Story**: As an OpenShift release engineer, I want to publish a catalog containing specific operator versions with controlled upgrade paths, then make it available in the cluster for users to install via the console.
 
 ```bash
-# Generate catalogs from templates
+# Generate catalogs from templates.
 make generate-catalogs
 
-# Build catalog image (defaults to y-stream)
+# Build catalog image (defaults to y-stream).
 make build-image
 
-# Or build z-stream for patch releases
+# Or build z-stream for patch releases.
 make build-image BUILD_STREAM=z-stream
 
-# Push to registry
+# Push to registry.
 make push-image
 
-# Deploy CatalogSource to cluster
+# Deploy CatalogSource to cluster.
 make deploy
 ```
 
@@ -129,11 +129,11 @@ The tool will be available at `./bin/bpfman-catalog`. Run `./bin/bpfman-catalog 
 Generates complete build artefacts from a bundle.
 
 ```bash
-# Generates: Dockerfile, catalog.yaml, Makefile
+# Generates: Dockerfile, catalog.yaml, Makefile.
 ./bin/bpfman-catalog prepare-catalog-build-from-bundle \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 
-# Builds image, pushes to registry, deploys to cluster with auto-subscribe
+# Builds image, pushes to registry, deploys to cluster with auto-subscribe.
 make -C auto-generated/artefacts all
 ```
 
@@ -142,13 +142,13 @@ make -C auto-generated/artefacts all
 Wraps an existing or modified catalog.yaml with build artefacts.
 
 ```bash
-# Edit the catalog YAML if needed
+# Edit the catalog YAML if needed.
 vim auto-generated/catalog/y-stream.yaml
 
-# Generates: Dockerfile, Makefile
+# Generates: Dockerfile, Makefile.
 ./bin/bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml
 
-# Builds image, pushes to registry, deploys to cluster with auto-subscribe
+# Builds image, pushes to registry, deploys to cluster with auto-subscribe.
 make -C auto-generated/artefacts all
 ```
 
@@ -157,10 +157,10 @@ make -C auto-generated/artefacts all
 Generates Kubernetes manifests to deploy a catalog to a cluster.
 
 ```bash
-# Produces: CatalogSource, Namespace, IDMS, Subscription
+# Produces: CatalogSource, Namespace, IDMS, Subscription.
 ./bin/bpfman-catalog prepare-catalog-deployment-from-image \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest
 
-# Deploy catalog to cluster with auto-subscribe
+# Deploy catalog to cluster with auto-subscribe.
 kubectl apply -f auto-generated/manifests/
 ```
