@@ -5,7 +5,12 @@
 QUAY_USER ?= $(or $(BPFMAN_CATALOG_QUAY_USER),$(USER),$(shell echo $$USER))
 IMAGE ?= quay.io/$(QUAY_USER)/{{.LocalTag}}:latest
 # Example: IMAGE=ttl.sh/{{.ImageUUID}}:{{.RandomTTL}}
-OCI_BIN ?= podman
+
+# Image building tool - defaults to podman, override with OCI_BIN.
+OCI_BIN_PATH := $(shell which podman)
+OCI_BIN ?= $(shell if [ -n "$${OCI_BIN_PATH}" ]; then basename $${OCI_BIN_PATH}; else echo "podman"; fi)
+export OCI_BIN
+
 BPFMAN_CATALOG := {{.BinaryPath}}
 
 .PHONY: build-catalog-image

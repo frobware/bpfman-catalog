@@ -8,7 +8,7 @@ BASE_IMAGE ?= registry.redhat.io/openshift4/ose-operator-registry-rhel9:v4.20
 BUILDVERSION ?= 4.20.0
 COMMIT ?= $(shell git rev-parse HEAD)
 
-# Image building tool - podman only for catalog generation.
+# Image building tool - defaults to podman, override with OCI_BIN.
 OCI_BIN_PATH := $(shell which podman)
 OCI_BIN ?= $(shell if [ -n "${OCI_BIN_PATH}" ]; then basename ${OCI_BIN_PATH}; else echo "podman"; fi)
 export OCI_BIN
