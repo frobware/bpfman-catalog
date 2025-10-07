@@ -26,10 +26,11 @@ type GlobalContext struct {
 
 // CLI defines the command-line interface structure
 type CLI struct {
-	PrepareCatalogBuild      PrepareCatalogBuildCmd      `cmd:"prepare-catalog-build" help:"Prepare catalog build artifacts from bundle image(s) (via positional args, --from-latest-bundles, or --from-bundles-json)"`
-	PrepareCatalogDeployment PrepareCatalogDeploymentCmd `cmd:"prepare-catalog-deployment" help:"Prepare deployment manifests from existing catalog image"`
-	AnalyzeBundle            AnalyzeBundleCmd            `cmd:"analyze-bundle" help:"Analyze bundle contents and dependencies"`
-	ListBundles              ListBundlesCmd              `cmd:"list-bundles" help:"List available bundle images"`
+	PrepareCatalogBuild         PrepareCatalogBuildCmd         `cmd:"prepare-catalog-build" help:"Prepare catalog build artifacts from bundle image(s) (via positional args, --from-latest-bundles, or --from-bundles-json)"`
+	PrepareCatalogBuildFromYAML PrepareCatalogBuildFromYAMLCmd `cmd:"prepare-catalog-build-from-yaml" help:"Prepare catalog build artifacts from an existing catalog.yaml file"`
+	PrepareCatalogDeployment    PrepareCatalogDeploymentCmd    `cmd:"prepare-catalog-deployment" help:"Prepare deployment manifests from existing catalog image"`
+	AnalyzeBundle               AnalyzeBundleCmd               `cmd:"analyze-bundle" help:"Analyze bundle contents and dependencies"`
+	ListBundles                 ListBundlesCmd                 `cmd:"list-bundles" help:"List available bundle images"`
 
 	// Global flags
 	LogLevel  string `env:"LOG_LEVEL" default:"info" help:"Log level (debug, info, warn, error)"`
@@ -44,6 +45,12 @@ type PrepareCatalogBuildCmd struct {
 	OutputDir         string   `default:"./artifacts" help:"Output directory for generated artifacts"`
 	OmpBin            string   `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
 	Bundles           []string `arg:"" optional:"" help:"Bundle image references"`
+}
+
+// PrepareCatalogBuildFromYAMLCmd prepares catalog build artifacts from existing catalog.yaml
+type PrepareCatalogBuildFromYAMLCmd struct {
+	CatalogYAML string `type:"path" required:"" help:"Path to existing catalog.yaml file"`
+	OutputDir   string `default:"./artifacts" help:"Output directory for generated artifacts"`
 }
 
 // PrepareCatalogDeploymentCmd prepares deployment manifests from catalog image
@@ -278,6 +285,57 @@ func (r *PrepareCatalogBuildCmd) generateMultiBundleWithMetadata(globals *Global
 	logger.Debug("multi-bundle artifacts generated successfully",
 		slog.String("output_dir", r.OutputDir),
 		slog.Int("bundle_count", len(bundleMetas)))
+
+	// Print workflow content to screen
+	fmt.Print(workflow)
+	fmt.Printf("\n(This information is saved in %s/WORKFLOW.txt)\n", r.OutputDir)
+
+	return nil
+}
+
+func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
+	logger := globals.Logger
+	logger.Debug("preparing catalog build artifacts from yaml", slog.String("catalog_yaml", r.CatalogYAML))
+
+	// Validate output directory
+	if filepath.Clean(r.OutputDir) == "." {
+		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
+	}
+
+	// Read the catalog.yaml file
+	catalogContent, err := os.ReadFile(r.CatalogYAML)
+	if err != nil {
+		return fmt.Errorf("reading catalog.yaml: %w", err)
+	}
+
+	// Create output directory
+	w := writer.New(r.OutputDir)
+
+	// Write catalog.yaml to output directory
+	if err := w.WriteSingle("catalog.yaml", catalogContent); err != nil {
+		return fmt.Errorf("writing catalog.yaml: %w", err)
+	}
+
+	// Generate Dockerfile
+	dockerfile := bundle.GenerateCatalogDockerfile()
+	if err := w.WriteSingle("Dockerfile.catalog", []byte(dockerfile)); err != nil {
+		return fmt.Errorf("writing Dockerfile: %w", err)
+	}
+
+	// Generate Makefile (use "from-yaml" as placeholder since no bundle reference)
+	makefile := bundle.GenerateMakefile("from-yaml", "")
+	if err := w.WriteSingle("Makefile", []byte(makefile)); err != nil {
+		return fmt.Errorf("writing Makefile: %w", err)
+	}
+
+	// Generate WORKFLOW.txt (catalog is already rendered, no bundle count)
+	workflow := bundle.GenerateWorkflow(0, true, r.OutputDir)
+	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
+		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
+	}
+
+	logger.Debug("catalog build artifacts generated successfully",
+		slog.String("output_dir", r.OutputDir))
 
 	// Print workflow content to screen
 	fmt.Print(workflow)
