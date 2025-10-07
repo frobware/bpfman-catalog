@@ -66,10 +66,7 @@ The CLI tool provides complete automation including namespace creation, IDMS con
 - `templates/` - Curated catalog templates for releases
   - `y-stream.yaml` - Y-stream minor version releases
   - `z-stream.yaml` - Z-stream patch releases
-- `auto-generated/` - Generated output directories
-  - `catalog/` - Catalogs from templates
-  - `artefacts/` - CLI-generated build files
-  - `manifests/` - CLI-generated Kubernetes manifests
+- `auto-generated/catalog/` - Generated catalogs from templates
 - `cmd/bpfman-catalog/` - CLI tool source code
 - `pkg/` - Go packages for catalog operations
 - `Dockerfile` - Container definition for building catalog images
