@@ -29,5 +29,5 @@ go.work
 /bin/
 
 # CLI tool default output directories
-/artifacts/
-/manifests/
+/auto-generated/artefacts/
+/auto-generated/manifests/

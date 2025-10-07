@@ -18,6 +18,12 @@ import (
 	"github.com/openshift/bpfman-catalog/pkg/writer"
 )
 
+// Default output directories
+const (
+	DefaultArtefactsDir = "auto-generated/artefacts"
+	DefaultManifestsDir = "auto-generated/manifests"
+)
+
 // GlobalContext contains global dependencies injected into commands
 type GlobalContext struct {
 	Context context.Context
@@ -26,8 +32,8 @@ type GlobalContext struct {
 
 // CLI defines the command-line interface structure
 type CLI struct {
-	PrepareCatalogBuildFromBundle     PrepareCatalogBuildFromBundleCmd     `cmd:"prepare-catalog-build-from-bundle" help:"Prepare catalog build artifacts from a bundle image"`
-	PrepareCatalogBuildFromYAML       PrepareCatalogBuildFromYAMLCmd       `cmd:"prepare-catalog-build-from-yaml" help:"Prepare catalog build artifacts from an existing catalog.yaml file"`
+	PrepareCatalogBuildFromBundle     PrepareCatalogBuildFromBundleCmd     `cmd:"prepare-catalog-build-from-bundle" help:"Prepare catalog build artefacts from a bundle image"`
+	PrepareCatalogBuildFromYAML       PrepareCatalogBuildFromYAMLCmd       `cmd:"prepare-catalog-build-from-yaml" help:"Prepare catalog build artefacts from an existing catalog.yaml file"`
 	PrepareCatalogDeploymentFromImage PrepareCatalogDeploymentFromImageCmd `cmd:"prepare-catalog-deployment-from-image" help:"Prepare deployment manifests from existing catalog image"`
 	AnalyzeBundle                     AnalyzeBundleCmd                     `cmd:"analyze-bundle" help:"Analyze bundle contents and dependencies"`
 	ListBundles                       ListBundlesCmd                       `cmd:"list-bundles" help:"List available bundle images"`
@@ -37,23 +43,23 @@ type CLI struct {
 	LogFormat string `env:"LOG_FORMAT" default:"text" help:"Log format (text, json)"`
 }
 
-// PrepareCatalogBuildFromBundleCmd prepares catalog build artifacts from a bundle image
+// PrepareCatalogBuildFromBundleCmd prepares catalog build artefacts from a bundle image
 type PrepareCatalogBuildFromBundleCmd struct {
 	BundleImage string `arg:"" required:"" help:"Bundle image reference"`
-	OutputDir   string `default:"./artifacts" help:"Output directory for generated artifacts"`
+	OutputDir   string `default:"auto-generated/artefacts" help:"Output directory for generated artefacts"` // Must match DefaultArtefactsDir
 	OpmBin      string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
 }
 
-// PrepareCatalogBuildFromYAMLCmd prepares catalog build artifacts from existing catalog.yaml
+// PrepareCatalogBuildFromYAMLCmd prepares catalog build artefacts from existing catalog.yaml
 type PrepareCatalogBuildFromYAMLCmd struct {
 	CatalogYAML string `arg:"" type:"path" required:"" help:"Path to existing catalog.yaml file"`
-	OutputDir   string `default:"./artifacts" help:"Output directory for generated artifacts"`
+	OutputDir   string `default:"auto-generated/artefacts" help:"Output directory for generated artefacts"` // Must match DefaultArtefactsDir
 }
 
 // PrepareCatalogDeploymentFromImageCmd prepares deployment manifests from catalog image
 type PrepareCatalogDeploymentFromImageCmd struct {
 	CatalogImage string `arg:"" required:"" help:"Catalog image reference"`
-	OutputDir    string `default:"./manifests" help:"Output directory for generated manifests"`
+	OutputDir    string `default:"auto-generated/manifests" help:"Output directory for generated manifests"` // Must match DefaultManifestsDir
 }
 
 // AnalyzeBundleCmd analyzes bundle contents and dependencies
@@ -72,7 +78,7 @@ type ListBundlesCmd struct {
 
 func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 	if filepath.Clean(r.OutputDir) == "." {
-		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
+		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like '%s'", DefaultArtefactsDir)
 	}
 
 	if err := os.RemoveAll(r.OutputDir); err != nil && !os.IsNotExist(err) {
@@ -80,7 +86,7 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 	}
 
 	logger := globals.Logger
-	logger.Debug("generating catalog artifacts from bundle", slog.String("bundle", r.BundleImage))
+	logger.Debug("generating catalog artefacts from bundle", slog.String("bundle", r.BundleImage))
 
 	var gen *bundle.Generator
 	if r.OpmBin != "" {
@@ -90,39 +96,39 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		gen = bundle.NewGenerator(r.BundleImage, "preview")
 	}
 
-	artifacts, err := gen.Generate(globals.Context)
+	artefacts, err := gen.Generate(globals.Context)
 	if err != nil {
-		logger.Debug("failed to generate bundle artifacts", slog.String("error", err.Error()))
-		return fmt.Errorf("generating bundle artifacts: %w", err)
+		logger.Debug("failed to generate bundle artefacts", slog.String("error", err.Error()))
+		return fmt.Errorf("generating bundle artefacts: %w", err)
 	}
 
 	w := writer.New(r.OutputDir)
 
-	if err := w.WriteSingle("fbc-template.yaml", []byte(artifacts.FBCTemplate)); err != nil {
+	if err := w.WriteSingle("fbc-template.yaml", []byte(artefacts.FBCTemplate)); err != nil {
 		return fmt.Errorf("writing FBC template: %w", err)
 	}
 
-	if artifacts.CatalogYAML != "" {
-		if err := w.WriteSingle("catalog.yaml", []byte(artifacts.CatalogYAML)); err != nil {
+	if artefacts.CatalogYAML != "" {
+		if err := w.WriteSingle("catalog.yaml", []byte(artefacts.CatalogYAML)); err != nil {
 			return fmt.Errorf("writing catalog: %w", err)
 		}
 	}
 
-	if err := w.WriteSingle("Dockerfile", []byte(artifacts.Dockerfile)); err != nil {
+	if err := w.WriteSingle("Dockerfile", []byte(artefacts.Dockerfile)); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
-	if err := w.WriteSingle("Makefile", []byte(artifacts.Makefile)); err != nil {
+	if err := w.WriteSingle("Makefile", []byte(artefacts.Makefile)); err != nil {
 		return fmt.Errorf("writing Makefile: %w", err)
 	}
 
-	catalogRendered := artifacts.CatalogYAML != ""
+	catalogRendered := artefacts.CatalogYAML != ""
 	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
 	workflow := bundle.GenerateWorkflow(0, catalogRendered, r.OutputDir, imageUUID, randomTTL)
 	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
 
-	logger.Debug("bundle artifacts generated successfully",
+	logger.Debug("bundle artefacts generated successfully",
 		slog.String("output_dir", r.OutputDir),
 		slog.Bool("catalog_rendered", catalogRendered))
 
@@ -133,10 +139,10 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 
 func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 	logger := globals.Logger
-	logger.Debug("preparing catalog build artifacts from yaml", slog.String("catalog_yaml", r.CatalogYAML))
+	logger.Debug("preparing catalog build artefacts from yaml", slog.String("catalog_yaml", r.CatalogYAML))
 
 	if filepath.Clean(r.OutputDir) == "." {
-		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
+		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like '%s'", DefaultArtefactsDir)
 	}
 
 	if err := os.RemoveAll(r.OutputDir); err != nil && !os.IsNotExist(err) {
@@ -171,7 +177,7 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
 
-	logger.Debug("catalog build artifacts generated successfully",
+	logger.Debug("catalog build artefacts generated successfully",
 		slog.String("output_dir", r.OutputDir))
 
 	fmt.Print(workflow)
@@ -182,7 +188,7 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 
 func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error {
 	if filepath.Clean(r.OutputDir) == "." {
-		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './manifests'")
+		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like '%s'", DefaultManifestsDir)
 	}
 
 	if err := os.RemoveAll(r.OutputDir); err != nil && !os.IsNotExist(err) {
@@ -338,19 +344,19 @@ func printWorkflowGuide() {
 	fmt.Println("Workflows:")
 	fmt.Println()
 	fmt.Println("1. Build catalog from a bundle image")
-	fmt.Println("   Generates complete build artifacts from a bundle")
+	fmt.Println("   Generates complete build artefacts from a bundle")
 	fmt.Println()
 	fmt.Println("     $ bpfman-catalog prepare-catalog-build-from-bundle \\")
 	fmt.Println("         quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest")
-	fmt.Println("     $ make -C artifacts all")
+	fmt.Printf("     $ make -C %s all\n", DefaultArtefactsDir)
 	fmt.Println()
 	fmt.Println("   Produces: Dockerfile, catalog.yaml, Makefile")
 	fmt.Println()
 	fmt.Println("2. Build catalog from edited catalog.yaml")
-	fmt.Println("   Wraps an existing or modified catalog.yaml with build artifacts")
+	fmt.Println("   Wraps an existing or modified catalog.yaml with build artefacts")
 	fmt.Println()
 	fmt.Println("     $ bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml")
-	fmt.Println("     $ make -C artifacts all")
+	fmt.Printf("     $ make -C %s all\n", DefaultArtefactsDir)
 	fmt.Println()
 	fmt.Println("   Produces: Dockerfile, Makefile")
 	fmt.Println()
@@ -359,7 +365,7 @@ func printWorkflowGuide() {
 	fmt.Println()
 	fmt.Println("     $ bpfman-catalog prepare-catalog-deployment-from-image \\")
 	fmt.Println("         quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest")
-	fmt.Println("     $ kubectl apply -f manifests/")
+	fmt.Printf("     $ kubectl apply -f %s/\n", DefaultManifestsDir)
 	fmt.Println()
 	fmt.Println("   Produces: CatalogSource, Namespace, IDMS")
 	fmt.Println()

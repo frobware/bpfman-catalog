@@ -8,8 +8,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Artifacts contains generated files for building a catalog from a bundle
-type Artifacts struct {
+// Artefacts contains generated files for building a catalog from a bundle
+type Artefacts struct {
 	FBCTemplate string // FBC template YAML
 	CatalogYAML string // Rendered catalog (if opm is available)
 	Dockerfile  string // Dockerfile for building catalog image
@@ -46,8 +46,8 @@ func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
 	}
 }
 
-// Generate creates all artifacts needed to build a catalog from a bundle
-func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
+// Generate creates all artefacts needed to build a catalog from a bundle
+func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
 	// Generate FBC template
 	fbcTemplate, err := GenerateFBCTemplate(g.bundleImage, g.channel)
 	if err != nil {
@@ -70,7 +70,7 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 	// Generate UUID and TTL for ttl.sh examples (used in Makefile comments)
 	imageUUID, randomTTL := GenerateImageUUIDAndTTL()
 
-	artifacts := &Artifacts{
+	artefacts := &Artefacts{
 		FBCTemplate: string(fbcYAML),
 		Dockerfile:  GenerateCatalogDockerfile(),
 		Makefile:    GenerateMakefile(g.bundleImage, execPath, imageUUID, randomTTL),
@@ -86,9 +86,9 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 
 	if err != nil {
 		// If rendering fails, catalog will be empty and main.go will handle it
-		return artifacts, fmt.Errorf("rendering catalog: %w", err)
+		return artefacts, fmt.Errorf("rendering catalog: %w", err)
 	}
 
-	artifacts.CatalogYAML = catalogYAML
-	return artifacts, nil
+	artefacts.CatalogYAML = catalogYAML
+	return artefacts, nil
 }
