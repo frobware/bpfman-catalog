@@ -140,7 +140,7 @@ Wraps an existing or modified catalog.yaml with build artefacts.
 
 ```bash
 # Edit the catalog YAML if needed.
-vim auto-generated/catalog/y-stream.yaml
+$EDITOR auto-generated/catalog/y-stream.yaml
 
 # Generates: Dockerfile, Makefile.
 ./bin/bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml
