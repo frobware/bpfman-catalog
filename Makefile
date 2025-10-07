@@ -137,7 +137,7 @@ vet: ## Run go vet on the code
 
 .PHONY: test
 test: ## Run unit tests
-	go test -v ./...
+	go test ./...
 
 .PHONY: build-cli
 build-cli: fmt vet test opm ## Build the bpfman-catalog CLI tool
