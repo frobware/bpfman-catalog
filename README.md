@@ -131,3 +131,30 @@ kubectl apply -f auto-generated/manifests/
 ```
 
 This workflow generates only the deployment manifests (CatalogSource, Namespace, ImageDigestMirrorSet) for a pre-existing catalog image.
+
+## Template-Based Release Workflow
+
+For formal releases, use the template-based workflow which builds catalog images from curated templates that define specific operator versions and upgrade paths.
+
+**User Story**: As an OpenShift release engineer, I want to publish a catalog containing specific operator versions with controlled upgrade paths, then make it available in the cluster for users to install via the console.
+
+```bash
+# Generate catalogs from templates
+make generate-catalogs
+
+# Build catalog image (defaults to y-stream)
+make build-image
+
+# Or build z-stream for patch releases
+make build-image BUILD_STREAM=z-stream
+
+# Push to registry
+make push-image
+
+# Deploy CatalogSource to cluster
+make deploy
+```
+
+After deployment, the operator becomes available in the OpenShift console under **Operators → OperatorHub** where users can install it through the UI.
+
+This workflow creates only the CatalogSource resource, allowing administrators to control when and how the operator is installed rather than automatically subscribing to it.
