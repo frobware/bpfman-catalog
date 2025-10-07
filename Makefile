@@ -130,72 +130,54 @@ clean: clean-catalogs clean-bin ## Remove all generated files and binaries.
 ##@ CLI Tool
 
 .PHONY: fmt
-fmt: ## Run go fmt on the code
+fmt: ## Run go fmt.
 	go fmt ./...
 
 .PHONY: vet
-vet: ## Run go vet on the code
+vet: ## Run go vet.
 	go vet ./...
 
 .PHONY: test
-test: ## Run unit tests
+test: ## Run unit tests.
 	go test ./...
 
 .PHONY: build-cli
-build-cli: fmt vet test opm ## Build the bpfman-catalog CLI tool
+build-cli: fmt vet test opm ## Build the bpfman-catalog CLI tool.
 	go build -o $(LOCALBIN)/bpfman-catalog ./cmd/bpfman-catalog
 
-.PHONY: install-cli
-install-cli: build-cli ## Install the bpfman-catalog CLI to /usr/local/bin
-	@echo "Installing bpfman-catalog to /usr/local/bin (may require sudo)"
-	@cp $(LOCALBIN)/bpfman-catalog /usr/local/bin/bpfman-catalog 2>/dev/null || \
-		sudo cp $(LOCALBIN)/bpfman-catalog /usr/local/bin/bpfman-catalog
+# Define test-cli-run macro for running CLI tests
+# $1 = workflow name
+# $2 = output directory
+# $3 = CLI command and arguments
+define test-cli-run
+	@echo "Testing $(1)..."
+	@rm -rf $(2)
+	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog $(3) --output-dir $(2)
+	@echo "Artefacts generated in $(2)"
+	@ls -la $(2)/
+endef
 
 .PHONY: test-cli
-test-cli: test-cli-bundle test-cli-yaml test-cli-image ## Test the CLI with all three workflow examples
+test-cli: test-cli-bundle test-cli-yaml test-cli-image ## Test the CLI with all three workflow examples.
 
 .PHONY: test-cli-bundle
-test-cli-bundle: test-cli-bundle-opm-library test-cli-bundle-opm-binary ## Test workflow 1: Build catalog from bundle (both OPM methods)
+test-cli-bundle: test-cli-bundle-opm-library test-cli-bundle-opm-binary ## Test workflow 1: Build catalog from bundle (both OPM methods).
 
 .PHONY: test-cli-bundle-opm-library
-test-cli-bundle-opm-library: build-cli ## Test workflow 1a: Build catalog from bundle (OPM library mode)
-	@echo "Testing workflow 1a: Build catalog from bundle (OPM library mode)..."
-	@rm -rf /tmp/bpfman-catalog-test-bundle-opm-library
-	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build-from-bundle \
-		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
-		--output-dir /tmp/bpfman-catalog-test-bundle-opm-library
-	@echo "Bundle artefacts generated in /tmp/bpfman-catalog-test-bundle-opm-library"
-	@ls -la /tmp/bpfman-catalog-test-bundle-opm-library/
+test-cli-bundle-opm-library: build-cli ## Test workflow 1a: Build catalog from bundle (OPM library mode).
+	$(call test-cli-run,workflow 1a: Build catalog from bundle (OPM library mode),/tmp/bpfman-catalog-test-bundle-opm-library,prepare-catalog-build-from-bundle quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest)
 
 .PHONY: test-cli-bundle-opm-binary
-test-cli-bundle-opm-binary: build-cli ## Test workflow 1b: Build catalog from bundle (OPM binary mode)
-	@echo "Testing workflow 1b: Build catalog from bundle (OPM binary mode)..."
-	@rm -rf /tmp/bpfman-catalog-test-bundle-opm-binary
-	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build-from-bundle \
-		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
-		--opm-bin $(LOCALBIN)/opm \
-		--output-dir /tmp/bpfman-catalog-test-bundle-opm-binary
-	@echo "Bundle artefacts generated in /tmp/bpfman-catalog-test-bundle-opm-binary"
-	@ls -la /tmp/bpfman-catalog-test-bundle-opm-binary/
+test-cli-bundle-opm-binary: build-cli ## Test workflow 1b: Build catalog from bundle (OPM binary mode).
+	$(call test-cli-run,workflow 1b: Build catalog from bundle (OPM binary mode),/tmp/bpfman-catalog-test-bundle-opm-binary,prepare-catalog-build-from-bundle quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest --opm-bin $(LOCALBIN)/opm)
 
 .PHONY: test-cli-yaml
-test-cli-yaml: build-cli generate-catalogs ## Test workflow 2: Build catalog from catalog.yaml
-	@echo "Testing workflow 2: Build catalog from catalog.yaml..."
-	@rm -rf /tmp/bpfman-catalog-test-yaml
-	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build-from-yaml \
-		auto-generated/catalog/y-stream.yaml \
-		--output-dir /tmp/bpfman-catalog-test-yaml
-	@echo "YAML artefacts generated in /tmp/bpfman-catalog-test-yaml"
-	@ls -la /tmp/bpfman-catalog-test-yaml/
+test-cli-yaml: build-cli generate-catalogs ## Test workflow 2: Build catalog from catalog.yaml.
+	$(call test-cli-run,workflow 2: Build catalog from catalog.yaml,/tmp/bpfman-catalog-test-yaml,prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml)
 
 .PHONY: test-cli-image
-test-cli-image: build-cli ## Test workflow 3: Deploy existing catalog image
-	@echo "Testing workflow 3: Deploy existing catalog image..."
-	@rm -rf /tmp/bpfman-catalog-test-manifests
-	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-deployment-from-image \
-		quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest \
-		--output-dir /tmp/bpfman-catalog-test-manifests
-	@echo "Test manifests generated in /tmp/bpfman-catalog-test-manifests"
+test-cli-image: build-cli ## Test workflow 3: Deploy existing catalog image.
+	$(call test-cli-run,workflow 3: Deploy existing catalog image,/tmp/bpfman-catalog-test-manifests,prepare-catalog-deployment-from-image quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest)
 	@ls -la /tmp/bpfman-catalog-test-manifests/catalog/
 
 ##@ General
