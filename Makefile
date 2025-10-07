@@ -113,6 +113,14 @@ deploy: $(YQ_BIN) ## Deploy catalog to OpenShift cluster.
 undeploy: ## Remove catalog from OpenShift cluster.
 	kubectl delete -f ./catalog-source.yaml
 
+.PHONY: purge-bpfman-catalog-cli-resources
+purge-bpfman-catalog-cli-resources: ## Remove all bpfman-catalog-cli resources from current cluster.
+	@echo "Removing all bpfman-catalog-cli resources from cluster..."
+	kubectl delete all -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
+	kubectl delete catalogsource,operatorgroup,subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
+	kubectl delete imagedigestmirrorset -l app.kubernetes.io/created-by=bpfman-catalog-cli --ignore-not-found
+	kubectl delete namespace -l app.kubernetes.io/created-by=bpfman-catalog-cli --ignore-not-found
+
 ##@ Cleanup
 
 .PHONY: clean-catalogs
