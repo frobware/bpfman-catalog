@@ -165,9 +165,14 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
 
+	execPath, err := os.Executable()
+	if err != nil {
+		execPath = "bpfman-catalog"
+	}
+
 	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
 
-	makefile := bundle.GenerateMakefile("from-yaml", "", imageUUID, randomTTL)
+	makefile := bundle.GenerateMakefile("from-yaml", execPath, imageUUID, randomTTL)
 	if err := w.WriteSingle("Makefile", []byte(makefile)); err != nil {
 		return fmt.Errorf("writing Makefile: %w", err)
 	}
