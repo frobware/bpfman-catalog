@@ -78,6 +78,7 @@ Environment variables and Make variables:
 
 - `IMAGE` - Target image name (default: `quay.io/$USER/bpfman-operator-catalog:latest`)
 - `BUILD_STREAM` - Template to use (default: `y-stream`, options: `y-stream`, `z-stream`)
+- `BPFMAN_CATALOG_CLI_QUAY_USER` - Override username for Quay.io image references (takes precedence over `$USER`)
 - `OCI_BIN` - Container runtime (`docker` or `podman`, auto-detected)
 - `LOG_LEVEL` - CLI logging level (default: `info`, options: `debug`, `info`, `warn`, `error`)
 - `LOG_FORMAT` - CLI log format (default: `text`, options: `text`, `json`)
