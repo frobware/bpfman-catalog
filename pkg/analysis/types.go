@@ -6,7 +6,8 @@ import (
 	"time"
 )
 
-// BundleAnalysis represents complete analysis results for a bundle image.
+// BundleAnalysis represents complete analysis results for a bundle
+// image.
 type BundleAnalysis struct {
 	BundleRef  ImageRef      `json:"bundle_ref"`
 	BundleInfo *ImageInfo    `json:"bundle_info,omitempty"`
@@ -66,7 +67,8 @@ func (r ImageRef) String() string {
 	return fmt.Sprintf("%s/%s", r.Registry, r.Repo)
 }
 
-// ParseImageRef parses a container image reference string into components.
+// ParseImageRef parses a container image reference string into
+// components.
 func ParseImageRef(ref string) (ImageRef, error) {
 	if ref == "" {
 		return ImageRef{}, fmt.Errorf("empty image reference")
@@ -116,13 +118,15 @@ func ParseImageRef(ref string) (ImageRef, error) {
 	}, nil
 }
 
-// ConvertToTenantWorkspace converts a downstream registry reference to tenant workspace.
+// ConvertToTenantWorkspace converts a downstream registry reference
+// to tenant workspace.
 func (r ImageRef) ConvertToTenantWorkspace() (ImageRef, error) {
 	if r.Registry != "registry.redhat.io" {
 		return ImageRef{}, fmt.Errorf("can only convert downstream registry references")
 	}
 
-	// Convert registry.redhat.io/bpfman/component-name to quay.io/redhat-user-workloads/ocp-bpfman-tenant/component-name-ystream
+	// Convert registry.redhat.io/bpfman/component-name to
+	// quay.io/redhat-user-workloads/ocp-bpfman-tenant/component-name-ystream.
 	if !strings.HasPrefix(r.Repo, "bpfman/") {
 		return ImageRef{}, fmt.Errorf("unsupported repository path for tenant conversion: %s", r.Repo)
 	}

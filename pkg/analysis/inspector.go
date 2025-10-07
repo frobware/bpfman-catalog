@@ -9,7 +9,8 @@ import (
 	"github.com/containers/image/v5/types"
 )
 
-// InspectImage performs comprehensive inspection of a single image reference.
+// InspectImage performs comprehensive inspection of a single image
+// reference.
 func InspectImage(ctx context.Context, imageRefStr string) (*ImageResult, error) {
 	imageRef, err := ParseImageRef(imageRefStr)
 	if err != nil {
@@ -62,7 +63,8 @@ func InspectImage(ctx context.Context, imageRefStr string) (*ImageResult, error)
 	return result, nil
 }
 
-// inspectImageRef inspects a specific image reference and returns metadata.
+// inspectImageRef inspects a specific image reference and returns
+// metadata.
 func inspectImageRef(ctx context.Context, imageRef ImageRef) (*types.ImageInspectInfo, error) {
 	ref, err := docker.ParseReference("//" + imageRef.String())
 	if err != nil {
@@ -79,7 +81,8 @@ func inspectImageRef(ctx context.Context, imageRef ImageRef) (*types.ImageInspec
 	return img.Inspect(ctx)
 }
 
-// convertToImageInfo converts types.ImageInspectInfo to our ImageInfo structure.
+// convertToImageInfo converts types.ImageInspectInfo to our ImageInfo
+// structure.
 func convertToImageInfo(info *types.ImageInspectInfo) *ImageInfo {
 	if info == nil {
 		return nil
@@ -119,7 +122,8 @@ func convertToImageInfo(info *types.ImageInspectInfo) *ImageInfo {
 	return imageInfo
 }
 
-// InspectImages performs batch inspection of multiple image references.
+// InspectImages performs batch inspection of multiple image
+// references.
 func InspectImages(ctx context.Context, imageRefs []string) ([]ImageResult, error) {
 	results := make([]ImageResult, len(imageRefs))
 

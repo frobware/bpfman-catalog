@@ -43,7 +43,8 @@ func AnalyseBundle(ctx context.Context, bundleRefStr string) (*BundleAnalysis, e
 	return analysis, nil
 }
 
-// extractBundleMetadata extracts metadata from the bundle image itself.
+// extractBundleMetadata extracts metadata from the bundle image
+// itself.
 func extractBundleMetadata(ctx context.Context, bundleRef ImageRef) (*ImageInfo, error) {
 	// Try to inspect the bundle directly.
 	if info, err := ExtractImageMetadata(ctx, bundleRef); err == nil {
@@ -69,14 +70,14 @@ type AnalyseConfig struct {
 	ShowAll bool // Include inaccessible images in results.
 }
 
-// AnalyseBundleWithConfig performs analysis with specific configuration options.
+// AnalyseBundleWithConfig performs analysis with specific
+// configuration options.
 func AnalyseBundleWithConfig(ctx context.Context, bundleRefStr string, config AnalyseConfig) (*BundleAnalysis, error) {
 	analysis, err := AnalyseBundle(ctx, bundleRefStr)
 	if err != nil {
 		return nil, err
 	}
 
-	// Filter results based on configuration.
 	if !config.ShowAll {
 		filteredImages := make([]ImageResult, 0, len(analysis.Images))
 		for _, img := range analysis.Images {
@@ -85,8 +86,6 @@ func AnalyseBundleWithConfig(ctx context.Context, bundleRefStr string, config An
 			}
 		}
 		analysis.Images = filteredImages
-
-		// Recalculate summary for filtered results.
 		analysis.Summary = CalculateSummary(filteredImages)
 	}
 

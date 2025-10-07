@@ -26,7 +26,9 @@ func (w *ManifestWriter) WriteAll(manifestSet *manifests.ManifestSet) error {
 	return w.WriteAllSeparated(manifestSet)
 }
 
-// WriteAllSeparated writes manifests in separate subdirectories for flexible deployment.
+// WriteAllSeparated writes manifests in separate subdirectories for
+// flexible deployment.
+//
 // Creates:
 //   - catalog/ - Namespace, IDMS, CatalogSource (catalog infrastructure)
 //   - subscription/ - OperatorGroup, Subscription (operator installation)
@@ -82,12 +84,13 @@ func (w *ManifestWriter) WriteAllSeparated(manifestSet *manifests.ManifestSet) e
 	return nil
 }
 
-// writeManifest writes a single manifest to a file
+// writeManifest writes a single manifest to a file.
 func (w *ManifestWriter) writeManifest(filename string, manifest interface{}) error {
 	return w.writeManifestToDir(w.outputDir, filename, manifest)
 }
 
-// writeManifestToDir writes a single manifest to a file in a specific directory
+// writeManifestToDir writes a single manifest to a file in a specific
+// directory.
 func (w *ManifestWriter) writeManifestToDir(dir, filename string, manifest interface{}) error {
 	data, err := yaml.Marshal(manifest)
 	if err != nil {

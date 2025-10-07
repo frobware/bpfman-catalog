@@ -31,8 +31,8 @@ type ImageMetadata struct {
 	Channels       []string      // Available channels
 }
 
-// ExtractMetadata extracts metadata from an image reference.
-// If the reference uses a tag, it will resolve it to a digest.
+// ExtractMetadata extracts metadata from an image reference. If the
+// reference uses a tag, it will resolve it to a digest.
 func ExtractMetadata(ctx context.Context, imageRef string) (*ImageMetadata, error) {
 	meta := &ImageMetadata{
 		OriginalRef: imageRef,
@@ -42,7 +42,6 @@ func ExtractMetadata(ctx context.Context, imageRef string) (*ImageMetadata, erro
 		return nil, fmt.Errorf("parsing image reference: %w", err)
 	}
 
-	// If no digest is present, fetch it from the registry
 	if meta.Digest == "" {
 		if err := fetchDigest(ctx, imageRef, meta); err != nil {
 			return nil, fmt.Errorf("fetching digest: %w", err)
@@ -63,7 +62,6 @@ func ExtractMetadata(ctx context.Context, imageRef string) (*ImageMetadata, erro
 		}
 	}
 
-	// Extract channel information from the catalog - this is required
 	if err := extractChannelInfo(ctx, meta.GetDigestRef(), meta); err != nil {
 		return nil, fmt.Errorf("extracting channel information: %w", err)
 	}
@@ -140,41 +138,35 @@ func parseImageReference(imageRef string, meta *ImageMetadata) error {
 	return nil
 }
 
-// fetchDigest resolves the digest for an image reference using containers/image.
+// fetchDigest resolves the digest for an image reference using
+// containers/image.
 func fetchDigest(ctx context.Context, imageRef string, meta *ImageMetadata) error {
-	// Create a system context for image operations.
 	sysCtx := &types.SystemContext{}
 
-	// Create a docker reference from the image reference.
 	ref, err := docker.ParseReference("//" + imageRef)
 	if err != nil {
 		return fmt.Errorf("parsing image reference: %w", err)
 	}
 
-	// Get the image source to inspect the manifest.
 	src, err := ref.NewImageSource(ctx, sysCtx)
 	if err != nil {
 		return fmt.Errorf("creating image source: %w", err)
 	}
 	defer src.Close()
 
-	// Get the manifest digest.
-	manifestBlob, manifestType, err := src.GetManifest(ctx, nil)
+	manifestBlob, _, err := src.GetManifest(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("getting manifest: %w", err)
 	}
 
-	// Calculate the digest of the manifest.
 	manifestDigest := digest.FromBytes(manifestBlob)
 	meta.Digest = manifestDigest
-
-	// Log the manifest type for debugging.
-	_ = manifestType // We have the type but don't need it for basic digest resolution.
 
 	return nil
 }
 
-// extractChannelInfo inspects the FBC catalog image to determine available channels.
+// extractChannelInfo inspects the FBC catalog image to determine
+// available channels.
 func extractChannelInfo(ctx context.Context, imageRef string, meta *ImageMetadata) error {
 	// Create a temporary directory for extraction.
 	tmpDir, err := os.MkdirTemp("", "catalog-extract-*")
@@ -183,7 +175,6 @@ func extractChannelInfo(ctx context.Context, imageRef string, meta *ImageMetadat
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Use operator-registry's execregistry to unpack the image.
 	logger := logrus.NewEntry(logrus.New())
 	logger.Logger.SetLevel(logrus.ErrorLevel) // Minimise logging noise.
 
@@ -200,23 +191,19 @@ func extractChannelInfo(ctx context.Context, imageRef string, meta *ImageMetadat
 	// Parse the image reference.
 	imgRef := image.SimpleReference(imageRef)
 
-	// Pull the image first (required for unpacking).
 	if err := registry.Pull(ctx, imgRef); err != nil {
 		return fmt.Errorf("pulling catalog image: %w", err)
 	}
 
-	// Unpack the image to the temporary directory.
 	if err := registry.Unpack(ctx, imgRef, tmpDir); err != nil {
 		return fmt.Errorf("unpacking catalog image: %w", err)
 	}
 
-	// Get image labels to find the configs location.
 	labels, err := registry.Labels(ctx, imgRef)
 	if err != nil {
 		return fmt.Errorf("getting image labels: %w", err)
 	}
 
-	// Find the configs directory.
 	configsDir := "/configs" // Default location.
 	if loc, ok := labels[containertools.ConfigsLocationLabel]; ok {
 		configsDir = loc
@@ -227,7 +214,6 @@ func extractChannelInfo(ctx context.Context, imageRef string, meta *ImageMetadat
 		return fmt.Errorf("configs directory not found at %s", configsPath)
 	}
 
-	// Load the declarative config from the extracted directory.
 	cfg, err := declcfg.LoadFS(ctx, os.DirFS(configsPath))
 	if err != nil {
 		return fmt.Errorf("loading FBC catalog from %s: %w", configsPath, err)
@@ -246,7 +232,6 @@ func extractChannelInfo(ctx context.Context, imageRef string, meta *ImageMetadat
 		return fmt.Errorf("bpfman-operator package not found in FBC catalog")
 	}
 
-	// Find channels for the bpfman-operator package.
 	var channels []declcfg.Channel
 	for _, ch := range cfg.Channels {
 		if ch.Package == "bpfman-operator" {
@@ -258,13 +243,11 @@ func extractChannelInfo(ctx context.Context, imageRef string, meta *ImageMetadat
 		return fmt.Errorf("no channels found for bpfman-operator package")
 	}
 
-	// Populate channel information.
 	meta.Channels = make([]string, len(channels))
 	for i, channel := range channels {
 		meta.Channels[i] = channel.Name
 	}
 
-	// Use the default channel if specified, otherwise use the first channel.
 	meta.DefaultChannel = bpfmanPackage.DefaultChannel
 	if meta.DefaultChannel == "" && len(meta.Channels) > 0 {
 		meta.DefaultChannel = meta.Channels[0]

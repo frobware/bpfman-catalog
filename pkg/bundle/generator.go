@@ -34,7 +34,8 @@ func NewGenerator(bundleImage, channel string) *Generator {
 	}
 }
 
-// NewGeneratorWithOpm creates a new bundle generator with external opm binary.
+// NewGeneratorWithOpm creates a new bundle generator with external
+// opm binary.
 func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
 	if channel == "" {
 		channel = "preview"
@@ -46,28 +47,25 @@ func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
 	}
 }
 
-// Generate creates all artefacts needed to build a catalog from a bundle.
+// Generate creates all artefacts needed to build a catalog from a
+// bundle.
 func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
-	// Generate FBC template
 	fbcTemplate, err := GenerateFBCTemplate(g.bundleImage, g.channel)
 	if err != nil {
 		return nil, fmt.Errorf("generating FBC template: %w", err)
 	}
 
-	// Marshal template to YAML
 	fbcYAML, err := yaml.Marshal(fbcTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling FBC template: %w", err)
 	}
 
-	// Get the path to the current executable
 	execPath, err := os.Executable()
 	if err != nil {
 		// Fallback if we can't get executable path
 		execPath = "bpfman-catalog"
 	}
 
-	// Generate UUID and TTL for ttl.sh examples (used in Makefile comments)
 	imageUUID, randomTTL := GenerateImageUUIDAndTTL()
 
 	artefacts := &Artefacts{
@@ -76,7 +74,6 @@ func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
 		Makefile:    GenerateMakefile(g.bundleImage, execPath, imageUUID, randomTTL),
 	}
 
-	// Render the catalog using either binary or library
 	var catalogYAML string
 	if g.ompBinPath != "" {
 		catalogYAML, err = RenderCatalogWithBinary(ctx, fbcTemplate, g.ompBinPath)
@@ -85,7 +82,8 @@ func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
 	}
 
 	if err != nil {
-		// If rendering fails, catalog will be empty and main.go will handle it
+		// If rendering fails, catalog will be empty and
+		// main.go will handle it.
 		return artefacts, fmt.Errorf("rendering catalog: %w", err)
 	}
 

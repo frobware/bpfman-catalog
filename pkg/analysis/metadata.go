@@ -10,7 +10,8 @@ import (
 	"github.com/containers/image/v5/types"
 )
 
-// ExtractImageMetadata performs detailed metadata extraction from image labels.
+// ExtractImageMetadata performs detailed metadata extraction from
+// image labels.
 func ExtractImageMetadata(ctx context.Context, imageRef ImageRef) (*ImageInfo, error) {
 	info, err := inspectImageRef(ctx, imageRef)
 	if err != nil {
@@ -20,7 +21,8 @@ func ExtractImageMetadata(ctx context.Context, imageRef ImageRef) (*ImageInfo, e
 	return extractMetadataFromLabels(info), nil
 }
 
-// extractMetadataFromLabels extracts comprehensive metadata from image labels.
+// extractMetadataFromLabels extracts comprehensive metadata from
+// image labels.
 func extractMetadataFromLabels(info *types.ImageInspectInfo) *ImageInfo {
 	if info == nil || info.Labels == nil {
 		return &ImageInfo{
@@ -70,7 +72,8 @@ func extractVersion(labels map[string]string) string {
 	return ""
 }
 
-// extractVersionFromString attempts to extract version patterns from a string.
+// extractVersionFromString attempts to extract version patterns from
+// a string.
 func extractVersionFromString(s string) string {
 	// Common version patterns
 	patterns := []string{
@@ -90,7 +93,8 @@ func extractVersionFromString(s string) string {
 	return ""
 }
 
-// extractGitCommit attempts to find git commit information from labels.
+// extractGitCommit attempts to find git commit information from
+// labels.
 func extractGitCommit(labels map[string]string) string {
 	commitKeys := []string{
 		"io.openshift.build.commit.id",
@@ -135,7 +139,8 @@ func extractGitURL(labels map[string]string) string {
 	return ""
 }
 
-// extractPRInfo attempts to extract PR number and title from various sources.
+// extractPRInfo attempts to extract PR number and title from various
+// sources.
 func extractPRInfo(labels map[string]string) (int, string) {
 	prKeys := []string{
 		"io.openshift.build.name",
@@ -160,7 +165,6 @@ func isValidCommitHash(s string) bool {
 		return false
 	}
 
-	// Should only contain hexadecimal characters
 	matched, _ := regexp.MatchString(`^[a-fA-F0-9]+$`, s)
 	return matched
 }
@@ -171,10 +175,8 @@ func cleanGitURL(rawURL string) string {
 		return ""
 	}
 
-	// Remove .git suffix
 	url := strings.TrimSuffix(rawURL, ".git")
 
-	// Ensure it's a valid GitHub URL pattern
 	if strings.Contains(url, "github.com") {
 		return url
 	}
@@ -184,7 +186,6 @@ func cleanGitURL(rawURL string) string {
 
 // extractPRNumber attempts to extract a PR number from a string.
 func extractPRNumber(s string) int {
-	// Look for patterns like "pr-123", "pull-123", "#123"
 	patterns := []string{
 		`pr-(\d+)`,
 		`pull-(\d+)`,
@@ -204,8 +205,9 @@ func extractPRNumber(s string) int {
 	return 0
 }
 
-// EnhanceWithGitHubMetadata attempts to enhance metadata with GitHub API information.
-// This is a placeholder for future GitHub integration.
+// EnhanceWithGitHubMetadata attempts to enhance metadata with GitHub
+// API information. This is a placeholder for future GitHub
+// integration.
 func EnhanceWithGitHubMetadata(ctx context.Context, metadata *ImageInfo) error {
 	// TODO: Implement GitHub API integration to fetch PR titles, commit messages, etc.
 	// This would require GitHub token and API calls to:

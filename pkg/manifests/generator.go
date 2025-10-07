@@ -40,7 +40,8 @@ func NewGenerator(config GeneratorConfig) *Generator {
 	}
 }
 
-// setupLabelContext initialises the label context with digest and standard labels.
+// setupLabelContext initialises the label context with digest and
+// standard labels.
 func (g *Generator) setupLabelContext(shortDigest string) {
 	standardLabels := map[string]string{
 		"app.kubernetes.io/name":       "bpfman-operator",
@@ -61,7 +62,8 @@ func (g *Generator) setupLabelContext(shortDigest string) {
 	}
 }
 
-// generateResourceName creates a resource name with optional digest suffix.
+// generateResourceName creates a resource name with optional digest
+// suffix.
 func (g *Generator) generateResourceName(baseName string) string {
 	if g.labelContext.ShortDigest != "" {
 		return fmt.Sprintf("%s-sha-%s", baseName, g.labelContext.ShortDigest)
@@ -69,7 +71,8 @@ func (g *Generator) generateResourceName(baseName string) string {
 	return baseName
 }
 
-// getMergedLabels returns standard labels merged with any custom labels and additional labels.
+// getMergedLabels returns standard labels merged with any custom
+// labels and additional labels.
 func (g *Generator) getMergedLabels(additionalLabels map[string]string) map[string]string {
 	merged := make(map[string]string)
 
@@ -91,7 +94,8 @@ func (g *Generator) getMergedLabels(additionalLabels map[string]string) map[stri
 	return merged
 }
 
-// NewNamespace creates a namespace manifest with consistent labelling.
+// NewNamespace creates a namespace manifest with consistent
+// labelling.
 func (g *Generator) NewNamespace(baseName string) *Namespace {
 	// Namespace-specific labels (like monitoring)
 	additionalLabels := map[string]string{
@@ -110,7 +114,8 @@ func (g *Generator) NewNamespace(baseName string) *Namespace {
 	}
 }
 
-// NewCatalogSource creates a catalog source manifest with consistent labelling.
+// NewCatalogSource creates a catalog source manifest with consistent
+// labelling.
 func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 	return &CatalogSource{
 		TypeMeta: TypeMeta{
@@ -134,7 +139,8 @@ func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 	}
 }
 
-// NewOperatorGroup creates an operator group manifest with consistent labelling.
+// NewOperatorGroup creates an operator group manifest with consistent
+// labelling.
 func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
 	return &OperatorGroup{
 		TypeMeta: TypeMeta{
@@ -150,7 +156,8 @@ func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
 	}
 }
 
-// NewSubscription creates a subscription manifest with consistent labelling.
+// NewSubscription creates a subscription manifest with consistent
+// labelling.
 func (g *Generator) NewSubscription(namespace, catalogSourceName, channel string) *Subscription {
 	return &Subscription{
 		TypeMeta: TypeMeta{
@@ -172,7 +179,8 @@ func (g *Generator) NewSubscription(namespace, catalogSourceName, channel string
 	}
 }
 
-// NewImageDigestMirrorSet creates an IDMS manifest with consistent labelling.
+// NewImageDigestMirrorSet creates an IDMS manifest with consistent
+// labelling.
 func (g *Generator) NewImageDigestMirrorSet() *ImageDigestMirrorSet {
 	return &ImageDigestMirrorSet{
 		TypeMeta: TypeMeta{
@@ -252,13 +260,14 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 // GenerateFromBundle generates artefacts for a bundle image.
 // This creates FBC template, catalog.yaml, and Dockerfile but does NOT build the image.
 func (g *Generator) GenerateFromBundle(ctx context.Context) (*BundleArtefacts, error) {
-	// For bundles, we generate artefacts for the user to build their own catalog
-	// We don't generate deployment manifests directly since they need to build and push first
-
+	// For bundles, we generate artefacts for the user to build
+	// their own catalog. We don't generate deployment manifests
+	// directly since they need to build and push first.
 	return nil, fmt.Errorf("bundle support should use GenerateBundleArtefacts instead")
 }
 
-// BundleArtefacts contains generated files for building a catalog from a bundle.
+// BundleArtefacts contains generated files for building a catalog
+// from a bundle.
 type BundleArtefacts struct {
 	FBCTemplate  string // FBC template YAML
 	CatalogYAML  string // Rendered catalog (if opm is available)

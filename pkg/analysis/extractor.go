@@ -11,28 +11,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ExtractImageReferences extracts all image references from a bundle image by directly inspecting it.
+// ExtractImageReferences extracts all image references from a bundle
+// image by directly inspecting it.
 func ExtractImageReferences(ctx context.Context, bundleRef ImageRef) ([]string, error) {
-	// Suppress noisy INFO logs from operator-registry library.
 	logrus.SetLevel(logrus.WarnLevel)
 
 	logger := logrus.NewEntry(logrus.New())
 	logger.Logger.SetLevel(logrus.WarnLevel)
 
-	// Create registry client.
 	registry, err := execregistry.NewRegistry(containertools.PodmanTool, logger)
 	if err != nil {
 		return nil, fmt.Errorf("creating image registry: %w", err)
 	}
 	defer registry.Destroy()
 
-	// Create migrations.
 	migs, err := migrations.NewMigrations("bundle-object-to-csv-metadata")
 	if err != nil {
 		return nil, fmt.Errorf("creating migrations: %w", err)
 	}
 
-	// Render the bundle to get its declarative config.
 	r := action.Render{
 		Refs:           []string{bundleRef.String()},
 		Registry:       registry,
@@ -45,10 +42,8 @@ func ExtractImageReferences(ctx context.Context, bundleRef ImageRef) ([]string, 
 		return nil, fmt.Errorf("rendering bundle: %w", err)
 	}
 
-	// Extract image references from all bundles.
 	var images []string
 	for _, bundle := range cfg.Bundles {
-		// Add the bundle image itself.
 		if bundle.Image != "" {
 			images = append(images, bundle.Image)
 		}

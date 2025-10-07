@@ -251,7 +251,8 @@ func sortByBuildDate(bundles []*BundleMetadata) {
 	})
 }
 
-// ListLatestBundles lists the latest N bundle builds from a repository.
+// ListLatestBundles lists the latest N bundle builds from a
+// repository.
 func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*BundleMetadata, error) {
 	if err := bundleRef.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid bundle reference: %w", err)
@@ -289,11 +290,11 @@ func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*
 	return bundles[:limit], nil
 }
 
-// ParseBundleRef parses a bundle image reference string into components.
+// ParseBundleRef parses a bundle image reference string into
+// components.
 func ParseBundleRef(imageRef string) (BundleRef, error) {
 	imageRef = strings.TrimPrefix(imageRef, "docker://")
 
-	// Remove tag or digest if present.
 	if idx := strings.LastIndex(imageRef, ":"); idx != -1 && !strings.Contains(imageRef[idx:], "/") {
 		imageRef = imageRef[:idx]
 	}
@@ -306,7 +307,6 @@ func ParseBundleRef(imageRef string) (BundleRef, error) {
 		return BundleRef{}, fmt.Errorf("invalid image reference format: %s (expected registry/tenant/repo)", imageRef)
 	}
 
-	// Handle quay.io/redhat-user-workloads/tenant/repo format.
 	if len(parts) == 4 && parts[0] == "quay.io" && parts[1] == "redhat-user-workloads" {
 		return BundleRef{
 			Registry: fmt.Sprintf("%s/%s", parts[0], parts[1]),
@@ -326,7 +326,8 @@ func ParseBundleRef(imageRef string) (BundleRef, error) {
 	return BundleRef{}, fmt.Errorf("unsupported image reference format: %s", imageRef)
 }
 
-// FetchBundleMetadataByTag fetches metadata for a specific bundle tag.
+// FetchBundleMetadataByTag fetches metadata for a specific bundle
+// tag.
 func FetchBundleMetadataByTag(ctx context.Context, bundleRef BundleRef, tag string) (*BundleMetadata, error) {
 	return fetchBundleMetadata(ctx, bundleRef, tag)
 }

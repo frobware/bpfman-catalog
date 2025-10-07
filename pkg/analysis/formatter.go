@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-// FormatResult formats analysis results according to the specified format.
+// FormatResult formats analysis results according to the specified
+// format.
 func FormatResult(analysis *BundleAnalysis, format string) (string, error) {
 	switch strings.ToLower(format) {
 	case "json":
@@ -32,10 +33,8 @@ func formatJSON(analysis *BundleAnalysis) (string, error) {
 func formatText(analysis *BundleAnalysis) string {
 	var b strings.Builder
 
-	// Bundle header
 	b.WriteString(fmt.Sprintf("Bundle: %s\n", analysis.BundleRef.String()))
 
-	// Bundle metadata
 	if analysis.BundleInfo != nil {
 		if analysis.BundleInfo.Created != nil {
 			b.WriteString(fmt.Sprintf("  Created: %s\n", analysis.BundleInfo.Created.Format(time.RFC3339)))
@@ -60,7 +59,6 @@ func formatText(analysis *BundleAnalysis) string {
 	}
 	b.WriteString("\n")
 
-	// Images section
 	imageCount := len(analysis.Images)
 	if imageCount == 0 {
 		b.WriteString("No images found in bundle.\n")
@@ -71,7 +69,6 @@ func formatText(analysis *BundleAnalysis) string {
 		}
 	}
 
-	// Summary
 	b.WriteString(formatSummary(analysis.Summary))
 
 	return b.String()
@@ -156,7 +153,8 @@ func formatSummary(summary Summary) string {
 	return fmt.Sprintf("Summary: %s\n", strings.Join(parts, ", "))
 }
 
-// buildCommitURL constructs a commit URL from git URL and commit hash.
+// buildCommitURL constructs a commit URL from git URL and commit
+// hash.
 func buildCommitURL(gitURL, commit string) string {
 	if gitURL == "" || commit == "" {
 		return fmt.Sprintf("%s (commit: %s)", gitURL, commit)
