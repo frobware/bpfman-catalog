@@ -227,7 +227,6 @@ func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error
 		slog.String("catalog", manifestSet.CatalogSource.ObjectMeta.Name))
 
 	fmt.Printf("Manifests generated in %s\n", r.OutputDir)
-	fmt.Printf("To apply: kubectl apply -f %s\n", r.OutputDir)
 	return nil
 }
 
