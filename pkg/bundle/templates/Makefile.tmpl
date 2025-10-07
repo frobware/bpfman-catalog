@@ -8,7 +8,7 @@ BPFMAN_CATALOG := {{.BinaryPath}}
 
 .PHONY: build-catalog-image
 build-catalog-image:
-	$(OCI_BIN) build -f Dockerfile.catalog -t $(IMAGE) .
+	$(OCI_BIN) build -f Dockerfile -t $(IMAGE) .
 
 .PHONY: push-catalog-image
 push-catalog-image:

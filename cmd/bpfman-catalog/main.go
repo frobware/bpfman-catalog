@@ -104,7 +104,7 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		}
 	}
 
-	if err := w.WriteSingle("Dockerfile.catalog", []byte(artifacts.Dockerfile)); err != nil {
+	if err := w.WriteSingle("Dockerfile", []byte(artifacts.Dockerfile)); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
 	if err := w.WriteSingle("Makefile", []byte(artifacts.Makefile)); err != nil {
@@ -147,7 +147,7 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 	}
 
 	dockerfile := bundle.GenerateCatalogDockerfile()
-	if err := w.WriteSingle("Dockerfile.catalog", []byte(dockerfile)); err != nil {
+	if err := w.WriteSingle("Dockerfile", []byte(dockerfile)); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
 
