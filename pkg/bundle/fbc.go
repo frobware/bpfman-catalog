@@ -31,6 +31,13 @@ var makefileTemplate string
 //go:embed templates/WORKFLOW.txt.tmpl
 var workflowTemplate string
 
+// GenerateImageUUIDAndTTL generates a double UUID and random TTL for ttl.sh examples
+func GenerateImageUUIDAndTTL() (string, string) {
+	imageUUID := fmt.Sprintf("%s-%s", uuid.New().String(), uuid.New().String())
+	randomTTL := generateRandomTTL()
+	return imageUUID, randomTTL
+}
+
 // generateRandomTTL generates a random TTL between 15m and 30m for ttl.sh
 func generateRandomTTL() string {
 	// Seed random number generator with current time
@@ -426,7 +433,7 @@ func RenderCatalogWithBinary(ctx context.Context, fbcTemplate *FBCTemplate, ompB
 }
 
 // GenerateMakefile generates a Makefile for building and deploying the catalog
-func GenerateMakefile(bundleImage, binaryPath string) string {
+func GenerateMakefile(bundleImage, binaryPath, imageUUID, randomTTL string) string {
 	digestSuffix := extractDigestSuffix(bundleImage)
 
 	localTag := "bpfman-catalog"
@@ -444,10 +451,14 @@ func GenerateMakefile(bundleImage, binaryPath string) string {
 		BundleImage string
 		LocalTag    string
 		BinaryPath  string
+		ImageUUID   string
+		RandomTTL   string
 	}{
 		BundleImage: bundleImage,
 		LocalTag:    localTag,
 		BinaryPath:  binaryPath,
+		ImageUUID:   imageUUID,
+		RandomTTL:   randomTTL,
 	}
 
 	var buf bytes.Buffer
@@ -460,11 +471,7 @@ func GenerateMakefile(bundleImage, binaryPath string) string {
 }
 
 // GenerateWorkflow generates a WORKFLOW.txt file with deployment instructions
-func GenerateWorkflow(bundleCount int, catalogRendered bool, outputDir string) string {
-	// Generate random UUID and TTL for ttl.sh examples
-	imageUUID := fmt.Sprintf("%s-%s", uuid.New().String(), uuid.New().String())
-	randomTTL := generateRandomTTL()
-
+func GenerateWorkflow(bundleCount int, catalogRendered bool, outputDir, imageUUID, randomTTL string) string {
 	tmpl, err := template.New("workflow").Parse(workflowTemplate)
 	if err != nil {
 		return fmt.Sprintf("# Error parsing WORKFLOW template: %v\n", err)

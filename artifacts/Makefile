@@ -1,10 +1,9 @@
 # Auto-generated Makefile for catalog deployment
-# Generated from bundle: {{.BundleImage}}
+# Generated from bundle: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:d4b84a799aea8f69658161526cc08b51b028b9dd
 
-IMAGE ?= quay.io/$(USER)/{{.LocalTag}}:latest
-# Example: IMAGE=ttl.sh/{{.ImageUUID}}:{{.RandomTTL}}
+IMAGE ?= quay.io/$(USER)/bpfman-catalog:latest
 OCI_BIN ?= podman
-BPFMAN_CATALOG := {{.BinaryPath}}
+BPFMAN_CATALOG := 
 
 .PHONY: build-catalog-image
 build-catalog-image:
