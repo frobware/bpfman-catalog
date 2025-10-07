@@ -85,14 +85,14 @@ generate-catalogs-container: | auto-generated/catalog ## Generate catalogs using
 		template_name=$$(basename $$template) ; \
 		catalog="auto-generated/catalog/$$template_name" ; \
 		echo "Processing $$template_name..." ; \
-		$(OCI_BIN) build --quiet \
+		podman build --quiet \
 			--secret id=dockerconfig,src=$${XDG_RUNTIME_DIR}/containers/auth.json \
 			--build-arg TEMPLATE_FILE=$$template_name \
 			-f Dockerfile.generate -t temp-catalog:$$template_name . && \
-		$(OCI_BIN) create --name temp-$$template_name temp-catalog:$$template_name >/dev/null && \
-		$(OCI_BIN) cp temp-$$template_name:/catalog.yaml $$catalog && \
-		$(OCI_BIN) rm temp-$$template_name >/dev/null && \
-		$(OCI_BIN) rmi temp-catalog:$$template_name >/dev/null || exit 1 ; \
+		podman create --name temp-$$template_name temp-catalog:$$template_name >/dev/null && \
+		podman cp temp-$$template_name:/catalog.yaml $$catalog && \
+		podman rm temp-$$template_name >/dev/null && \
+		podman rmi temp-catalog:$$template_name >/dev/null || exit 1 ; \
 	done
 	@echo "Catalogs generated successfully"
 
