@@ -4,34 +4,36 @@ bpfman Operator Catalog - Workflow Guide
 {{if .BundleCount}}Multi-bundle catalog generated successfully with {{.BundleCount}} bundles!{{else}}Bundle artifacts generated successfully!{{end}}
 
 Generated Files:
-{{if .BundleCount}}  - fbc-template.yaml   (FBC template with {{.BundleCount}} bundles)
-  - catalog.yaml        (Rendered catalog, ready to build)
-  - Dockerfile          (Dockerfile for catalog image)
-  - Makefile            (Makefile for automated build/push/deploy)
-{{else}}  - fbc-template.yaml   (FBC template for your bundle)
-{{if .CatalogRendered}}  - catalog.yaml        (Rendered catalog, ready to build)
-{{end}}  - Dockerfile          (Dockerfile for catalog image)
-  - Makefile            (Makefile for automated build/push/deploy)
+{{if .BundleCount}}  - fbc-template.yaml  (FBC template with {{.BundleCount}} bundles)
+  - catalog.yaml       (Rendered catalog, ready to build)
+  - Dockerfile         (Dockerfile for catalog image)
+  - Makefile           (Automated build/push/deploy)
+{{else}}  - fbc-template.yaml  (FBC template for your bundle)
+{{if .CatalogRendered}}  - catalog.yaml       (Rendered catalog, ready to build)
+{{end}}  - Dockerfile         (Dockerfile for catalog image)
+  - Makefile           (Automated build/push/deploy)
 {{end}}
 
 To Deploy Your Catalog:
 
 Step-by-step workflow:
-  1. Build:  $ make -C {{.OutputDir}} build-catalog-image
-  2. Push:   $ make -C {{.OutputDir}} push-catalog-image
-  3. Deploy: $ make -C {{.OutputDir}} deploy-catalog
+  1. Build catalog image:
+     $ make -C {{.OutputDir}} build-catalog-image
 
-Shortcut for catalog only (build + push + deploy):
-  $ make -C {{.OutputDir}} build-and-deploy-catalog
+  2. Push to registry:
+     $ make -C {{.OutputDir}} push-catalog-image
 
-After deploying, the catalog will be available in the OpenShift Console's
-OperatorHub where you can manually install the bpfman operator.
+  3. Deploy to cluster:
+     $ make -C {{.OutputDir}} deploy-catalog
 
-For automatic subscription (will install the operator):
-  4. Subscribe: $ make -C {{.OutputDir}} subscribe
+  4. Subscribe to operator (optional):
+     $ make -C {{.OutputDir}} subscribe
 
-All-in-one workflow (build + push + deploy + subscribe):
+All-in-one (build + push + deploy + subscribe):
   $ make -C {{.OutputDir}} all
+
+After deploying, the catalog will be available in the OpenShift Console
+OperatorHub where you can manually install the bpfman operator.
 
 Custom Registry Examples:
 
