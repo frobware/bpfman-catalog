@@ -127,8 +127,8 @@ func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 			return CatalogSourceSpec{
 				SourceType:  "grpc",
 				Image:       meta.Image,
-				DisplayName: fmt.Sprintf("BPFman Operator Catalog (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
-				Publisher:   fmt.Sprintf("bpfman-catalog-cli (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
+				DisplayName: fmt.Sprintf("bpfman-catalog CLI (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
+				Publisher:   fmt.Sprintf("bpfman-catalog CLI (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
 			}
 		}(),
 	}
