@@ -88,8 +88,8 @@ func TestOutputDirValidation(t *testing.T) {
 	}
 }
 
-// TestCleaningBehavior documents and tests filepath.Clean behavior for our use case.
-func TestCleaningBehavior(t *testing.T) {
+// TestFilePathCleaningBehaviour documents and tests filepath.Clean behaviour for our use case.
+func TestFilePathCleaningBehaviour(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
