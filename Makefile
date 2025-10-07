@@ -88,11 +88,11 @@ generate-catalogs-container: | auto-generated/catalog ## Generate catalogs using
 		podman build --quiet \
 			--secret id=dockerconfig,src=$${XDG_RUNTIME_DIR}/containers/auth.json \
 			--build-arg TEMPLATE_FILE=$$template_name \
-			-f Dockerfile.generate -t temp-catalog:$$template_name . && \
-		podman create --name temp-$$template_name temp-catalog:$$template_name >/dev/null && \
-		podman cp temp-$$template_name:/catalog.yaml $$catalog && \
-		podman rm temp-$$template_name >/dev/null && \
-		podman rmi temp-catalog:$$template_name >/dev/null || exit 1 ; \
+			-f Dockerfile.generate -t bpfman-catalog-cli-temp:$$template_name . && \
+		podman create --name bpfman-catalog-cli-temp-$$template_name bpfman-catalog-cli-temp:$$template_name >/dev/null && \
+		podman cp bpfman-catalog-cli-temp-$$template_name:/catalog.yaml $$catalog && \
+		podman rm bpfman-catalog-cli-temp-$$template_name >/dev/null && \
+		podman rmi bpfman-catalog-cli-temp:$$template_name >/dev/null || exit 1 ; \
 	done
 	@echo "Catalogs generated successfully"
 
@@ -165,32 +165,32 @@ test-cli-bundle: test-cli-bundle-opm-library test-cli-bundle-opm-binary ## Test 
 
 .PHONY: test-cli-bundle-opm-library
 test-cli-bundle-opm-library: build-cli ## Test workflow 1a: Build catalog from bundle (OPM library mode).
-	$(call test-cli-run,workflow 1a: Build catalog from bundle (OPM library mode),/tmp/bpfman-catalog-test-bundle-opm-library,prepare-catalog-build-from-bundle quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest)
+	$(call test-cli-run,workflow 1a: Build catalog from bundle (OPM library mode),/tmp/bpfman-catalog-cli-test-bundle-opm-library,prepare-catalog-build-from-bundle quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest)
 	echo "Building catalog image to verify artefacts..."
-	make -C /tmp/bpfman-catalog-test-bundle-opm-library build-catalog-image IMAGE=bpfman-catalog-cli-test:opm-library
+	make -C /tmp/bpfman-catalog-cli-test-bundle-opm-library build-catalog-image IMAGE=bpfman-catalog-cli-test:opm-library
 	echo "Image built successfully, cleaning up..."
 	$(OCI_BIN) rmi bpfman-catalog-cli-test:opm-library
 
 .PHONY: test-cli-bundle-opm-binary
 test-cli-bundle-opm-binary: build-cli ## Test workflow 1b: Build catalog from bundle (OPM binary mode).
-	$(call test-cli-run,workflow 1b: Build catalog from bundle (OPM binary mode),/tmp/bpfman-catalog-test-bundle-opm-binary,prepare-catalog-build-from-bundle quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest --opm-bin $(LOCALBIN)/opm)
+	$(call test-cli-run,workflow 1b: Build catalog from bundle (OPM binary mode),/tmp/bpfman-catalog-cli-test-bundle-opm-binary,prepare-catalog-build-from-bundle quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest --opm-bin $(LOCALBIN)/opm)
 	echo "Building catalog image to verify artefacts..."
-	make -C /tmp/bpfman-catalog-test-bundle-opm-binary build-catalog-image IMAGE=bpfman-catalog-cli-test:opm-binary
+	make -C /tmp/bpfman-catalog-cli-test-bundle-opm-binary build-catalog-image IMAGE=bpfman-catalog-cli-test:opm-binary
 	echo "Image built successfully, cleaning up..."
 	$(OCI_BIN) rmi bpfman-catalog-cli-test:opm-binary
 
 .PHONY: test-cli-yaml
 test-cli-yaml: build-cli generate-catalogs ## Test workflow 2: Build catalog from catalog.yaml.
-	$(call test-cli-run,workflow 2: Build catalog from catalog.yaml,/tmp/bpfman-catalog-test-yaml,prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml)
+	$(call test-cli-run,workflow 2: Build catalog from catalog.yaml,/tmp/bpfman-catalog-cli-test-yaml,prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml)
 	echo "Building catalog image to verify artefacts..."
-	make -C /tmp/bpfman-catalog-test-yaml build-catalog-image IMAGE=bpfman-catalog-cli-test:yaml
+	make -C /tmp/bpfman-catalog-cli-test-yaml build-catalog-image IMAGE=bpfman-catalog-cli-test:yaml
 	echo "Image built successfully, cleaning up..."
 	$(OCI_BIN) rmi bpfman-catalog-cli-test:yaml
 
 .PHONY: test-cli-image
 test-cli-image: build-cli ## Test workflow 3: Deploy existing catalog image.
-	$(call test-cli-run,workflow 3: Deploy existing catalog image,/tmp/bpfman-catalog-test-manifests,prepare-catalog-deployment-from-image quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest)
-	@ls -la /tmp/bpfman-catalog-test-manifests/catalog/
+	$(call test-cli-run,workflow 3: Deploy existing catalog image,/tmp/bpfman-catalog-cli-test-manifests,prepare-catalog-deployment-from-image quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest)
+	@ls -la /tmp/bpfman-catalog-cli-test-manifests/catalog/
 
 ##@ General
 
