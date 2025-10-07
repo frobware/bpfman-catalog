@@ -40,7 +40,7 @@ subscribe: deploy-catalog
 check:
 	@kubectl get namespace,imagedigestmirrorset -l app.kubernetes.io/created-by=bpfman-catalog-cli --show-kind=true
 	@kubectl get catalogsource,operatorgroup,subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --show-kind=true
-	@kubectl get pods,csv -l app.kubernetes.io/name=bpfman-operator --all-namespaces --show-kind=true
+	@kubectl get pods,csv -n bpfman --show-kind=true
 
 .PHONY: undeploy
 undeploy:
