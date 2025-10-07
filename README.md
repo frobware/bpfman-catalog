@@ -1,19 +1,23 @@
 # bpfman-catalog
 
-OLM catalog tooling for deploying the OpenShift eBPF Manager Operator.
+OLM catalog used to release the OpenShift eBPF Manager Operator.
 
 ## Overview
 
-This repository provides two complementary approaches for managing BPFMan operator catalogs:
+This repository builds and publishes OLM catalogs for releasing the OpenShift eBPF Manager Operator. Catalogs are generated from curated templates that define specific operator versions and upgrade paths, then packaged as OCI images for deployment to OpenShift clusters.
 
-1. **Template-Based Releases** - Curated catalog templates for formal releases with controlled upgrade paths, built using traditional Makefile workflows
-2. **CLI Tool** - `bpfman-catalog` command-line tool for rapid development iteration, enabling developers to quickly build and deploy catalogs from bundle images
-
-Both approaches generate OLM File-Based Catalogs (FBC) and package them as OCI images for deployment to OpenShift clusters.
+The repository also includes a CLI tool (`bpfman-catalog`) for development and testing, enabling rapid iteration when working with individual bundle images.
 
 ## Quick Start
 
-### For Development (CLI Tool)
+### Releases (Primary Use Case)
+
+```bash
+# Generate, build, and deploy catalog from templates
+make generate-catalogs build-image push-image deploy
+```
+
+### Development Testing (CLI Tool)
 
 ```bash
 # Build the CLI tool
@@ -23,13 +27,6 @@ make build-cli
 ./bin/bpfman-catalog prepare-catalog-build-from-bundle \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 make -C auto-generated/artefacts all
-```
-
-### For Releases (Templates)
-
-```bash
-# Generate, build, and deploy from templates
-make generate-catalogs build-image push-image deploy
 ```
 
 ## Directory Structure
@@ -56,9 +53,36 @@ Environment variables and Make variables:
 - `LOG_LEVEL` - CLI logging level (default: `info`, options: `debug`, `info`, `warn`, `error`)
 - `LOG_FORMAT` - CLI log format (default: `text`, options: `text`, `json`)
 
-## CLI Tool Workflows
+## Template-Based Release Workflow
 
-The `bpfman-catalog` CLI tool streamlines catalog creation and deployment by automating the generation of build artefacts and Kubernetes manifests. It supports three primary workflows for different stages of the development and release process.
+For formal releases, use the template-based workflow which builds catalog images from curated templates that define specific operator versions and upgrade paths.
+
+**User Story**: As an OpenShift release engineer, I want to publish a catalog containing specific operator versions with controlled upgrade paths, then make it available in the cluster for users to install via the console.
+
+```bash
+# Generate catalogs from templates
+make generate-catalogs
+
+# Build catalog image (defaults to y-stream)
+make build-image
+
+# Or build z-stream for patch releases
+make build-image BUILD_STREAM=z-stream
+
+# Push to registry
+make push-image
+
+# Deploy CatalogSource to cluster
+make deploy
+```
+
+After deployment, the operator becomes available in the OpenShift console under **Operators → OperatorHub** where users can install it through the UI.
+
+This workflow creates only the CatalogSource resource, allowing administrators to control when and how the operator is installed rather than automatically subscribing to it.
+
+## CLI Tool Workflows (Development)
+
+The `bpfman-catalog` CLI tool is provided for development and testing scenarios, streamlining catalog creation from individual bundles. It supports three workflows for different development needs.
 
 ### Building the CLI
 
@@ -114,30 +138,3 @@ kubectl apply -f auto-generated/manifests/
 ```
 
 This workflow generates only the deployment manifests (CatalogSource, Namespace, ImageDigestMirrorSet) for a pre-existing catalog image.
-
-## Template-Based Release Workflow
-
-For formal releases, use the template-based workflow which builds catalog images from curated templates that define specific operator versions and upgrade paths.
-
-**User Story**: As an OpenShift release engineer, I want to publish a catalog containing specific operator versions with controlled upgrade paths, then make it available in the cluster for users to install via the console.
-
-```bash
-# Generate catalogs from templates
-make generate-catalogs
-
-# Build catalog image (defaults to y-stream)
-make build-image
-
-# Or build z-stream for patch releases
-make build-image BUILD_STREAM=z-stream
-
-# Push to registry
-make push-image
-
-# Deploy CatalogSource to cluster
-make deploy
-```
-
-After deployment, the operator becomes available in the OpenShift console under **Operators → OperatorHub** where users can install it through the UI.
-
-This workflow creates only the CatalogSource resource, allowing administrators to control when and how the operator is installed rather than automatically subscribing to it.
