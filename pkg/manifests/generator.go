@@ -123,12 +123,12 @@ func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 			Labels:    g.getMergedLabels(nil),
 		},
 		Spec: func() CatalogSourceSpec {
-			timestamp := time.Now().Format("2006-01-02 15:04:05")
+			timestamp := time.Now().Format("2006-01-02T15:04:05")
 			return CatalogSourceSpec{
 				SourceType:  "grpc",
 				Image:       meta.Image,
-				DisplayName: fmt.Sprintf("bpfman-catalog CLI (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
-				Publisher:   fmt.Sprintf("bpfman-catalog CLI (ephemeral-%s - %s)", meta.ShortDigest, timestamp),
+				DisplayName: fmt.Sprintf("bpfman-catalog CLI (%s-%s)", meta.ShortDigest, timestamp),
+				Publisher:   fmt.Sprintf("bpfman-catalog CLI (%s-%s)", meta.ShortDigest, timestamp),
 			}
 		}(),
 	}
