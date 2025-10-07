@@ -13,17 +13,27 @@ The repository also includes a CLI tool (`bpfman-catalog`) for development and t
 ### Releases (Primary Use Case)
 
 ```bash
-# Generate, build, and deploy catalog from templates
-make generate-catalogs build-image push-image deploy
+# Edit templates/y-stream.yaml or templates/z-stream.yaml to update operator versions
+# Then regenerate catalogs
+make generate-catalogs
+
+# Commit the updated catalogs
+git add auto-generated/catalog/
+git commit -m "Update catalog for new release"
 ```
 
-### Development Testing (CLI Tool)
+The generated catalogs are then built and deployed through CI/CD pipelines.
+
+### Development Testing
+
+For local testing and development:
 
 ```bash
-# Build the CLI tool
-make build-cli
+# Test template changes
+make generate-catalogs build-image push-image deploy
 
-# Generate catalog from a bundle and deploy
+# Or use the CLI tool to test individual bundles
+make build-cli
 ./bin/bpfman-catalog prepare-catalog-build-from-bundle \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 make -C auto-generated/artefacts all
