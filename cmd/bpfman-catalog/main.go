@@ -35,7 +35,7 @@ type CLI struct {
 	PrepareCatalogBuildFromBundle     PrepareCatalogBuildFromBundleCmd     `cmd:"prepare-catalog-build-from-bundle" help:"Prepare catalog build artefacts from a bundle image"`
 	PrepareCatalogBuildFromYAML       PrepareCatalogBuildFromYAMLCmd       `cmd:"prepare-catalog-build-from-yaml" help:"Prepare catalog build artefacts from an existing catalog.yaml file"`
 	PrepareCatalogDeploymentFromImage PrepareCatalogDeploymentFromImageCmd `cmd:"prepare-catalog-deployment-from-image" help:"Prepare deployment manifests from existing catalog image"`
-	AnalyzeBundle                     AnalyzeBundleCmd                     `cmd:"analyze-bundle" help:"Analyze bundle contents and dependencies"`
+	AnalyseBundle                     AnalyseBundleCmd                     `cmd:"analyse-bundle" help:"Analyse bundle contents and dependencies"`
 	ListBundles                       ListBundlesCmd                       `cmd:"list-bundles" help:"List available bundle images"`
 
 	// Global flags
@@ -62,9 +62,9 @@ type PrepareCatalogDeploymentFromImageCmd struct {
 	OutputDir    string `default:"${default_manifests_dir}" help:"Output directory for generated manifests"`
 }
 
-// AnalyzeBundleCmd analyses bundle contents and dependencies.
-type AnalyzeBundleCmd struct {
-	BundleImage string `arg:"" required:"" help:"Bundle image reference to analyze"`
+// AnalyseBundleCmd analyses bundle contents and dependencies.
+type AnalyseBundleCmd struct {
+	BundleImage string `arg:"" required:"" help:"Bundle image reference to analyse"`
 	Format      string `default:"text" enum:"text,json" help:"Output format (text, json)"`
 	ShowAll     bool   `help:"Show all images including inaccessible ones"`
 }
@@ -235,21 +235,21 @@ func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error
 	return nil
 }
 
-func (r *AnalyzeBundleCmd) Run(globals *GlobalContext) error {
+func (r *AnalyseBundleCmd) Run(globals *GlobalContext) error {
 	logger := globals.Logger
-	logger.Debug("analyzing bundle",
+	logger.Debug("analysing bundle",
 		slog.String("bundle_image", r.BundleImage),
 		slog.String("format", r.Format),
 		slog.Bool("show_all", r.ShowAll))
 
-	config := analysis.AnalyzeConfig{
+	config := analysis.AnalyseConfig{
 		ShowAll: r.ShowAll,
 	}
 
-	result, err := analysis.AnalyzeBundleWithConfig(globals.Context, r.BundleImage, config)
+	result, err := analysis.AnalyseBundleWithConfig(globals.Context, r.BundleImage, config)
 	if err != nil {
 		logger.Debug("bundle analysis failed", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to analyze bundle: %w", err)
+		return fmt.Errorf("failed to analyse bundle: %w", err)
 	}
 
 	output, err := analysis.FormatResult(result, r.Format)

@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// AnalyzeBundle performs comprehensive analysis of a bundle image.
-func AnalyzeBundle(ctx context.Context, bundleRefStr string) (*BundleAnalysis, error) {
+// AnalyseBundle performs comprehensive analysis of a bundle image.
+func AnalyseBundle(ctx context.Context, bundleRefStr string) (*BundleAnalysis, error) {
 	bundleRef, err := ParseImageRef(bundleRefStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bundle reference: %w", err)
@@ -64,14 +64,14 @@ func extractBundleMetadata(ctx context.Context, bundleRef ImageRef) (*ImageInfo,
 	return info, nil
 }
 
-// AnalyzeConfig holds configuration options for bundle analysis.
-type AnalyzeConfig struct {
+// AnalyseConfig holds configuration options for bundle analysis.
+type AnalyseConfig struct {
 	ShowAll bool // Include inaccessible images in results.
 }
 
-// AnalyzeBundleWithConfig performs analysis with specific configuration options.
-func AnalyzeBundleWithConfig(ctx context.Context, bundleRefStr string, config AnalyzeConfig) (*BundleAnalysis, error) {
-	analysis, err := AnalyzeBundle(ctx, bundleRefStr)
+// AnalyseBundleWithConfig performs analysis with specific configuration options.
+func AnalyseBundleWithConfig(ctx context.Context, bundleRefStr string, config AnalyseConfig) (*BundleAnalysis, error) {
+	analysis, err := AnalyseBundle(ctx, bundleRefStr)
 	if err != nil {
 		return nil, err
 	}
