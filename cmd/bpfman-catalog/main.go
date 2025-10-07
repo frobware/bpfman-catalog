@@ -340,38 +340,39 @@ func formatBundlesJSON(bundles []*bundle.BundleMetadata) (string, error) {
 }
 
 func printWorkflowGuide() {
-	fmt.Println()
-	fmt.Println("Workflows:")
-	fmt.Println()
-	fmt.Println("1. Build catalog from a bundle image")
-	fmt.Println("   Generates complete build artefacts from a bundle")
-	fmt.Println()
-	fmt.Println("     $ bpfman-catalog prepare-catalog-build-from-bundle \\")
-	fmt.Println("         quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest")
-	fmt.Printf("     $ make -C %s all\n", DefaultArtefactsDir)
-	fmt.Println("       # builds image, pushes to registry, deploys to cluster")
-	fmt.Println()
-	fmt.Println("   Produces: Dockerfile, catalog.yaml, Makefile")
-	fmt.Println()
-	fmt.Println("2. Build catalog from edited catalog.yaml")
-	fmt.Println("   Wraps an existing or modified catalog.yaml with build artefacts")
-	fmt.Println()
-	fmt.Println("     $ bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml")
-	fmt.Printf("     $ make -C %s all\n", DefaultArtefactsDir)
-	fmt.Println("       # builds image, pushes to registry, deploys to cluster")
-	fmt.Println()
-	fmt.Println("   Produces: Dockerfile, Makefile")
-	fmt.Println()
-	fmt.Println("3. Deploy existing catalog image")
-	fmt.Println("   Generates Kubernetes manifests to deploy a catalog to a cluster")
-	fmt.Println()
-	fmt.Println("     $ bpfman-catalog prepare-catalog-deployment-from-image \\")
-	fmt.Println("         quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest")
-	fmt.Printf("     $ kubectl apply -f %s/\n", DefaultManifestsDir)
-	fmt.Println("       # deploys catalog to cluster")
-	fmt.Println()
-	fmt.Println("   Produces: CatalogSource, Namespace, IDMS")
-	fmt.Println()
+	fmt.Printf(`
+Workflows:
+
+1. Build catalog from a bundle image
+   Generates complete build artefacts from a bundle
+
+     $ bpfman-catalog prepare-catalog-build-from-bundle \
+         quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
+     $ make -C %s all
+       # builds image, pushes to registry, deploys to cluster
+
+   Produces: Dockerfile, catalog.yaml, Makefile
+
+2. Build catalog from edited catalog.yaml
+   Wraps an existing or modified catalog.yaml with build artefacts
+
+     $ bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml
+     $ make -C %s all
+       # builds image, pushes to registry, deploys to cluster
+
+   Produces: Dockerfile, Makefile
+
+3. Deploy existing catalog image
+   Generates Kubernetes manifests to deploy a catalog to a cluster
+
+     $ bpfman-catalog prepare-catalog-deployment-from-image \
+         quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest
+     $ kubectl apply -f %s/
+       # deploys catalog to cluster
+
+   Produces: CatalogSource, Namespace, IDMS
+
+`, DefaultArtefactsDir, DefaultArtefactsDir, DefaultManifestsDir)
 }
 
 func main() {
