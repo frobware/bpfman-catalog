@@ -187,7 +187,8 @@ func (r *PrepareCatalogBuildCmd) generateSingleBundle(globals *GlobalContext, bu
 
 	// Generate WORKFLOW.txt
 	catalogRendered := artifacts.CatalogYAML != ""
-	workflow := bundle.GenerateWorkflow(0, catalogRendered, r.OutputDir)
+	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
+	workflow := bundle.GenerateWorkflow(0, catalogRendered, r.OutputDir, imageUUID, randomTTL)
 	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
@@ -271,13 +272,16 @@ func (r *PrepareCatalogBuildCmd) generateMultiBundleWithMetadata(globals *Global
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
 
-	makefile := bundle.GenerateMakefile(bundleMetas[0].Image, "")
+	// Generate UUID/TTL once for use in both Makefile and WORKFLOW.txt
+	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
+
+	makefile := bundle.GenerateMakefile(bundleMetas[0].Image, "", imageUUID, randomTTL)
 	if err := w.WriteSingle("Makefile", []byte(makefile)); err != nil {
 		return fmt.Errorf("writing Makefile: %w", err)
 	}
 
 	// Generate WORKFLOW.txt
-	workflow := bundle.GenerateWorkflow(len(bundleMetas), true, r.OutputDir)
+	workflow := bundle.GenerateWorkflow(len(bundleMetas), true, r.OutputDir, imageUUID, randomTTL)
 	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
@@ -322,14 +326,17 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
 
+	// Generate UUID/TTL once for use in both Makefile and WORKFLOW.txt
+	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
+
 	// Generate Makefile (use "from-yaml" as placeholder since no bundle reference)
-	makefile := bundle.GenerateMakefile("from-yaml", "")
+	makefile := bundle.GenerateMakefile("from-yaml", "", imageUUID, randomTTL)
 	if err := w.WriteSingle("Makefile", []byte(makefile)); err != nil {
 		return fmt.Errorf("writing Makefile: %w", err)
 	}
 
 	// Generate WORKFLOW.txt (catalog is already rendered, no bundle count)
-	workflow := bundle.GenerateWorkflow(0, true, r.OutputDir)
+	workflow := bundle.GenerateWorkflow(0, true, r.OutputDir, imageUUID, randomTTL)
 	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}

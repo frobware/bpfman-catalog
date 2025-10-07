@@ -67,10 +67,13 @@ func (g *Generator) Generate(ctx context.Context) (*Artifacts, error) {
 		execPath = "bpfman-catalog"
 	}
 
+	// Generate UUID and TTL for ttl.sh examples (used in Makefile comments)
+	imageUUID, randomTTL := GenerateImageUUIDAndTTL()
+
 	artifacts := &Artifacts{
 		FBCTemplate: string(fbcYAML),
 		Dockerfile:  GenerateCatalogDockerfile(),
-		Makefile:    GenerateMakefile(g.bundleImage, execPath),
+		Makefile:    GenerateMakefile(g.bundleImage, execPath, imageUUID, randomTTL),
 	}
 
 	// Render the catalog using either binary or library

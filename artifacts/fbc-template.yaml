@@ -1,0 +1,32 @@
+Entries:
+- DefaultChannel: 2025-10-02-gd4b84a79
+  Name: bpfman-operator
+  Schema: olm.package
+- Entries:
+  - Name: bpfman-operator.v0.5.7-dev
+    Replaces: ""
+  Name: 2025-10-02-gd4b84a79
+  Package: bpfman-operator
+  Schema: olm.channel
+- Image: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:d4b84a799aea8f69658161526cc08b51b028b9dd
+  Name: bpfman-operator.v0.5.7-dev
+  Schema: olm.bundle
+- Entries:
+  - Name: bpfman-operator.v0.5.7-dev
+    Replaces: ""
+  Name: 2025-10-02-g707887a1
+  Package: bpfman-operator
+  Schema: olm.channel
+- Image: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:707887a1e7fd98c2fa9d01caedc7aca79964e5cb
+  Name: bpfman-operator.v0.5.7-dev
+  Schema: olm.bundle
+- Entries:
+  - Name: bpfman-operator.v0.5.7-dev
+    Replaces: ""
+  Name: 2025-10-02-g376ff064
+  Package: bpfman-operator
+  Schema: olm.channel
+- Image: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:376ff0644ab76f415046e87652074d7991e359ac
+  Name: bpfman-operator.v0.5.7-dev
+  Schema: olm.bundle
+Schema: olm.template.basic
