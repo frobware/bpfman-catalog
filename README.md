@@ -6,7 +6,7 @@ OLM catalog used to release the OpenShift eBPF Manager Operator.
 
 This repository builds and publishes OLM catalogs for releasing the OpenShift eBPF Manager Operator. Catalogs are generated from curated templates that define specific operator versions and upgrade paths, then packaged as OCI images for deployment to OpenShift clusters.
 
-The repository also includes a CLI tool (`bpfman-catalog`) for development and testing, enabling rapid iteration when working with individual bundle images.
+The repository also includes a CLI tool (`bpfman-catalog`) for rapid deployment and testing of catalogs, supporting catalog.yaml files, catalog images, and bundle images with automated deploy/undeploy workflows.
 
 ## Quick Start
 
