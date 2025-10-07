@@ -45,20 +45,6 @@ func (r BundleRef) String() string {
 	return fmt.Sprintf("%s/%s/%s", r.Registry, r.Tenant, r.Repo)
 }
 
-// Validate checks if the bundle reference is valid.
-func (r BundleRef) Validate() error {
-	if r.Registry == "" {
-		return fmt.Errorf("registry cannot be empty")
-	}
-	if r.Tenant == "" {
-		return fmt.Errorf("tenant cannot be empty")
-	}
-	if r.Repo == "" {
-		return fmt.Errorf("repository cannot be empty")
-	}
-	return nil
-}
-
 // NewDefaultBundleRef creates a bundle reference with default values.
 func NewDefaultBundleRef() BundleRef {
 	return BundleRef{
@@ -254,14 +240,6 @@ func sortByBuildDate(bundles []*BundleMetadata) {
 // ListLatestBundles lists the latest N bundle builds from a
 // repository.
 func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*BundleMetadata, error) {
-	if err := bundleRef.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid bundle reference: %w", err)
-	}
-
-	if limit <= 0 {
-		return nil, fmt.Errorf("limit must be positive: %d", limit)
-	}
-
 	tags, err := fetchTags(ctx, bundleRef)
 	if err != nil {
 		return nil, fmt.Errorf("fetching tags: %w", err)

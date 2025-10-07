@@ -84,12 +84,8 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("cleaning output directory: %w", err)
 	}
 
-	logger := globals.Logger
-	logger.Debug("generating catalog artefacts from bundle", slog.String("bundle", r.BundleImage))
-
 	var gen *bundle.Generator
 	if r.OpmBin != "" {
-		logger.Debug("using external opm binary", slog.String("opm_bin", r.OpmBin))
 		gen = bundle.NewGeneratorWithOmp(r.BundleImage, "preview", r.OpmBin)
 	} else {
 		gen = bundle.NewGenerator(r.BundleImage, "preview")
@@ -97,7 +93,6 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 
 	artefacts, err := gen.Generate(globals.Context)
 	if err != nil {
-		logger.Debug("failed to generate bundle artefacts", slog.String("error", err.Error()))
 		return fmt.Errorf("generating bundle artefacts: %w", err)
 	}
 
@@ -127,19 +122,12 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
 
-	logger.Debug("bundle artefacts generated successfully",
-		slog.String("output_dir", r.OutputDir),
-		slog.Bool("catalog_rendered", catalogRendered))
-
 	fmt.Print(workflow)
 	fmt.Printf("\nThis information is saved in %s/WORKFLOW.txt\n", r.OutputDir)
 	return nil
 }
 
 func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
-	logger := globals.Logger
-	logger.Debug("preparing catalog build artefacts from yaml", slog.String("catalog_yaml", r.CatalogYAML))
-
 	if filepath.Clean(r.OutputDir) == "." {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like '%s'", DefaultArtefactsDir)
 	}
@@ -181,9 +169,6 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
 	}
 
-	logger.Debug("catalog build artefacts generated successfully",
-		slog.String("output_dir", r.OutputDir))
-
 	fmt.Print(workflow)
 	fmt.Printf("\nThis information is saved in %s/WORKFLOW.txt\n", r.OutputDir)
 
@@ -199,11 +184,6 @@ func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error
 		return fmt.Errorf("cleaning output directory: %w", err)
 	}
 
-	logger := globals.Logger
-	logger.Debug("generating manifests",
-		slog.String("output_dir", r.OutputDir),
-		slog.String("catalog_image", r.CatalogImage))
-
 	config := manifests.GeneratorConfig{
 		Namespace:     "bpfman",
 		UseDigestName: true,
@@ -212,58 +192,37 @@ func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error
 
 	generator := manifests.NewGenerator(config)
 
-	logger.Debug("generating manifests from catalog", slog.String("catalog", r.CatalogImage))
-
 	manifestSet, err := generator.GenerateFromCatalog(globals.Context)
 	if err != nil {
-		logger.Debug("failed to generate manifests", slog.String("error", err.Error()))
 		return fmt.Errorf("generating manifests: %w", err)
 	}
 
 	writer := writer.New(r.OutputDir)
 	if err := writer.WriteAll(manifestSet); err != nil {
-		logger.Debug("failed to write manifests", slog.String("error", err.Error()))
 		return fmt.Errorf("writing manifests: %w", err)
 	}
-
-	logger.Debug("manifests generated successfully",
-		slog.String("output_dir", r.OutputDir),
-		slog.String("catalog", manifestSet.CatalogSource.ObjectMeta.Name))
 
 	fmt.Printf("Manifests generated in %s\n", r.OutputDir)
 	return nil
 }
 
 func (r *BundleInfoCmd) Run(globals *GlobalContext) error {
-	logger := globals.Logger
-	logger.Debug("analysing bundle",
-		slog.String("bundle_image", r.BundleImage),
-		slog.String("format", r.Format))
-
 	result, err := analysis.AnalyseBundle(globals.Context, r.BundleImage)
 	if err != nil {
-		logger.Debug("bundle analysis failed", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to analyse bundle: %w", err)
 	}
 
 	output, err := analysis.FormatResult(result, r.Format)
 	if err != nil {
-		logger.Debug("output formatting failed", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to format output: %w", err)
 	}
 
 	fmt.Print(output)
 
-	logger.Debug("bundle analysis completed successfully",
-		slog.Int("total_images", result.Summary.TotalImages),
-		slog.Int("accessible_images", result.Summary.AccessibleImages))
-
 	return nil
 }
 
 func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
-	logger := globals.Logger
-
 	var bundleRef bundle.BundleRef
 	var err error
 
@@ -276,13 +235,8 @@ func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
 		bundleRef = bundle.NewDefaultBundleRef()
 	}
 
-	logger.Debug("listing bundles",
-		slog.String("repository", bundleRef.String()),
-		slog.Int("limit", r.List))
-
 	bundles, err := bundle.ListLatestBundles(globals.Context, bundleRef, r.List)
 	if err != nil {
-		logger.Debug("failed to list bundles", slog.String("error", err.Error()))
 		return fmt.Errorf("listing bundles: %w", err)
 	}
 
@@ -296,7 +250,6 @@ func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
 		formatBundlesText(bundles)
 	}
 
-	logger.Debug("bundles listed successfully", slog.Int("count", len(bundles)))
 	return nil
 }
 

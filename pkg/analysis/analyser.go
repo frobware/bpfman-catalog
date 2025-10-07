@@ -31,9 +31,19 @@ func AnalyseBundle(ctx context.Context, bundleRefStr string) (*BundleAnalysis, e
 	}
 
 	// Inspect each image reference.
-	imageResults, err := InspectImages(ctx, imageRefs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to inspect images: %w", err)
+	imageResults := make([]ImageResult, len(imageRefs))
+	for i, ref := range imageRefs {
+		result, err := InspectImage(ctx, ref)
+		if err != nil {
+			imageResults[i] = ImageResult{
+				Reference:  ref,
+				Accessible: false,
+				Registry:   NotAccessible,
+				Error:      fmt.Sprintf("inspection failed: %v", err),
+			}
+		} else {
+			imageResults[i] = *result
+		}
 	}
 	analysis.Images = imageResults
 

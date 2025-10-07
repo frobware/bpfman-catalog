@@ -207,51 +207,49 @@ func (g *Generator) NewImageDigestMirrorSet() *ImageDigestMirrorSet {
 
 // GenerateFromCatalog generates manifests for a catalog image.
 func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, error) {
-	// Extract metadata from the catalog image
 	meta, err := catalog.ExtractMetadata(ctx, g.config.ImageRef)
 	if err != nil {
 		return nil, fmt.Errorf("extracting catalog metadata: %w", err)
 	}
 
-	// Setup label context for consistent labeling
-	digestSuffix := ""
-	if g.config.UseDigestName && meta.ShortDigest != "" {
-		digestSuffix = meta.ShortDigest
-	}
+	digestSuffix := getDigestSuffix(g.config.UseDigestName, meta.ShortDigest)
 	g.setupLabelContext(digestSuffix)
 
-	// Create catalog metadata for manifest generation
-	// Use the digest-based image reference for the actual catalog deployment
-	digestRef := meta.GetDigestRef()
-	catalogMeta := CatalogMetadata{
-		Image:       digestRef,
+	catalogMeta := createCatalogMetadata(meta)
+	return g.buildManifestSet(catalogMeta, meta.DefaultChannel)
+}
+
+func getDigestSuffix(useDigestName bool, shortDigest string) string {
+	if useDigestName && shortDigest != "" {
+		return shortDigest
+	}
+	return ""
+}
+
+func createCatalogMetadata(meta *catalog.ImageMetadata) CatalogMetadata {
+	return CatalogMetadata{
+		Image:       meta.GetDigestRef(),
 		Digest:      string(meta.Digest),
 		ShortDigest: meta.ShortDigest,
 		CatalogType: meta.CatalogType,
 	}
+}
 
-	// Generate all manifests
-	manifestSet := &ManifestSet{}
-
-	// Generate namespace
-	manifestSet.Namespace = g.NewNamespace(g.config.Namespace)
-
-	// Generate IDMS
-	manifestSet.IDMS = g.NewImageDigestMirrorSet()
-
-	// Generate CatalogSource
-	manifestSet.CatalogSource = g.NewCatalogSource(catalogMeta)
-
-	// Generate OperatorGroup (uses the potentially suffixed namespace name)
-	namespaceName := manifestSet.Namespace.ObjectMeta.Name
-	manifestSet.OperatorGroup = g.NewOperatorGroup(namespaceName)
-
-	// Generate Subscription - use the detected default channel
-	catalogSourceName := manifestSet.CatalogSource.ObjectMeta.Name
-	channel := meta.DefaultChannel
+func (g *Generator) buildManifestSet(catalogMeta CatalogMetadata, channel string) (*ManifestSet, error) {
 	if channel == "" {
 		return nil, fmt.Errorf("no default channel found in catalog metadata")
 	}
+
+	manifestSet := &ManifestSet{
+		Namespace:     g.NewNamespace(g.config.Namespace),
+		IDMS:          g.NewImageDigestMirrorSet(),
+		CatalogSource: g.NewCatalogSource(catalogMeta),
+	}
+
+	namespaceName := manifestSet.Namespace.ObjectMeta.Name
+	manifestSet.OperatorGroup = g.NewOperatorGroup(namespaceName)
+
+	catalogSourceName := manifestSet.CatalogSource.ObjectMeta.Name
 	manifestSet.Subscription = g.NewSubscription(namespaceName, catalogSourceName, channel)
 
 	return manifestSet, nil

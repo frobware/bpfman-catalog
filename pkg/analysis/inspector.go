@@ -84,10 +84,6 @@ func inspectImageRef(ctx context.Context, imageRef ImageRef) (*types.ImageInspec
 // convertToImageInfo converts types.ImageInspectInfo to our ImageInfo
 // structure.
 func convertToImageInfo(info *types.ImageInspectInfo) *ImageInfo {
-	if info == nil {
-		return nil
-	}
-
 	imageInfo := &ImageInfo{}
 
 	// Extract creation time.
@@ -120,28 +116,6 @@ func convertToImageInfo(info *types.ImageInspectInfo) *ImageInfo {
 	}
 
 	return imageInfo
-}
-
-// InspectImages performs batch inspection of multiple image
-// references.
-func InspectImages(ctx context.Context, imageRefs []string) ([]ImageResult, error) {
-	results := make([]ImageResult, len(imageRefs))
-
-	for i, ref := range imageRefs {
-		result, err := InspectImage(ctx, ref)
-		if err != nil {
-			results[i] = ImageResult{
-				Reference:  ref,
-				Accessible: false,
-				Registry:   NotAccessible,
-				Error:      fmt.Sprintf("inspection failed: %v", err),
-			}
-		} else {
-			results[i] = *result
-		}
-	}
-
-	return results, nil
 }
 
 // CalculateSummary generates summary statistics from image results.

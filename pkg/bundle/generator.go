@@ -60,12 +60,7 @@ func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
 		return nil, fmt.Errorf("marshaling FBC template: %w", err)
 	}
 
-	execPath, err := os.Executable()
-	if err != nil {
-		// Fallback if we can't get executable path
-		execPath = "bpfman-catalog"
-	}
-
+	execPath := getExecutablePath()
 	imageUUID, randomTTL := GenerateImageUUIDAndTTL()
 
 	artefacts := &Artefacts{
@@ -74,19 +69,26 @@ func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
 		Makefile:    GenerateMakefile(g.bundleImage, execPath, imageUUID, randomTTL),
 	}
 
-	var catalogYAML string
-	if g.ompBinPath != "" {
-		catalogYAML, err = RenderCatalogWithBinary(ctx, fbcTemplate, g.ompBinPath)
-	} else {
-		catalogYAML, err = RenderCatalog(ctx, fbcTemplate)
-	}
-
+	catalogYAML, err := g.renderCatalog(ctx, fbcTemplate)
 	if err != nil {
-		// If rendering fails, catalog will be empty and
-		// main.go will handle it.
 		return artefacts, fmt.Errorf("rendering catalog: %w", err)
 	}
 
 	artefacts.CatalogYAML = catalogYAML
 	return artefacts, nil
+}
+
+func getExecutablePath() string {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "bpfman-catalog"
+	}
+	return execPath
+}
+
+func (g *Generator) renderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error) {
+	if g.ompBinPath != "" {
+		return RenderCatalogWithBinary(ctx, fbcTemplate, g.ompBinPath)
+	}
+	return RenderCatalog(ctx, fbcTemplate)
 }
