@@ -312,9 +312,9 @@ func RenderCatalogWithBinary(ctx context.Context, fbcTemplate *FBCTemplate, ompB
 }
 
 // getUsernameOrDefault returns the username for quay.io examples.
-// Priority: BPFMAN_CATALOG_CLI_QUAY_USER > USER > "$(USER)".
+// Priority: BPFMAN_CATALOG_QUAY_USER > USER > "$(USER)".
 func getUsernameOrDefault() string {
-	if user := os.Getenv("BPFMAN_CATALOG_CLI_QUAY_USER"); user != "" {
+	if user := os.Getenv("BPFMAN_CATALOG_QUAY_USER"); user != "" {
 		return user
 	}
 	if user := os.Getenv("USER"); user != "" {

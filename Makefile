@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 
-# Username for image references - priority: BPFMAN_CATALOG_CLI_QUAY_USER > USER > fallback.
-QUAY_USER ?= $(or $(BPFMAN_CATALOG_CLI_QUAY_USER),$(USER),$(shell echo $$USER))
+# Username for image references - priority: BPFMAN_CATALOG_QUAY_USER > USER > fallback.
+QUAY_USER ?= $(or $(BPFMAN_CATALOG_QUAY_USER),$(USER),$(shell echo $$USER))
 IMAGE ?= quay.io/$(QUAY_USER)/bpfman-operator-catalog:latest
 BUILD_STREAM ?= y-stream
 BASE_IMAGE ?= registry.redhat.io/openshift4/ose-operator-registry-rhel9:v4.20
