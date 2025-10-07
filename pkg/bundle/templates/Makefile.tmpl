@@ -38,28 +38,13 @@ subscribe: deploy-catalog
 
 .PHONY: check
 check:
-	@echo "Checking catalog and operator resources..."
-	@echo ""
-	@echo "Namespaces:"
-	@kubectl get namespace -l app.kubernetes.io/created-by=bpfman-catalog-cli
-	@echo ""
-	@echo "CatalogSources:"
-	@kubectl get catalogsource -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces
-	@echo ""
-	@echo "OperatorGroups:"
-	@kubectl get operatorgroup -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces
-	@echo ""
-	@echo "Subscriptions:"
-	@kubectl get subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces
-	@echo ""
-	@echo "ImageDigestMirrorSets:"
-	@kubectl get imagedigestmirrorset -l app.kubernetes.io/created-by=bpfman-catalog-cli
-	@echo ""
-	@echo "Operator Pods:"
-	@kubectl get pods -l app.kubernetes.io/name=bpfman-operator --all-namespaces
-	@echo ""
-	@echo "ClusterServiceVersions:"
-	@kubectl get csv -l app.kubernetes.io/name=bpfman-operator --all-namespaces
+	@kubectl get namespace -l app.kubernetes.io/created-by=bpfman-catalog-cli --show-kind=true
+	@kubectl get catalogsource -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --show-kind=true
+	@kubectl get operatorgroup -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --show-kind=true
+	@kubectl get subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --show-kind=true
+	@kubectl get imagedigestmirrorset -l app.kubernetes.io/created-by=bpfman-catalog-cli --show-kind=true
+	@kubectl get pods -l app.kubernetes.io/name=bpfman-operator --all-namespaces --show-kind=true
+	@kubectl get csv -l app.kubernetes.io/name=bpfman-operator --all-namespaces --show-kind=true
 
 .PHONY: undeploy
 undeploy:
