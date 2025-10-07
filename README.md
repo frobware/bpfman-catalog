@@ -82,33 +82,6 @@ Environment variables and Make variables:
 - `LOG_LEVEL` - CLI logging level (default: `info`, options: `debug`, `info`, `warn`, `error`)
 - `LOG_FORMAT` - CLI log format (default: `text`, options: `text`, `json`)
 
-## Template-Based Release Workflow
-
-For formal releases, use the template-based workflow which builds catalog images from curated templates that define specific operator versions and upgrade paths.
-
-**User Story**: As an OpenShift release engineer, I want to publish a catalog containing specific operator versions with controlled upgrade paths, then make it available in the cluster for users to install via the console.
-
-```bash
-# Generate catalogs from templates.
-make generate-catalogs
-
-# Build catalog image (defaults to y-stream).
-make build-image
-
-# Or build z-stream for patch releases.
-make build-image BUILD_STREAM=z-stream
-
-# Push to registry.
-make push-image
-
-# Deploy CatalogSource to cluster.
-make deploy
-```
-
-After deployment, the operator becomes available in the OpenShift console under **Operators → OperatorHub** where it can be installed through the UI.
-
-This workflow creates only the CatalogSource resource for testing. Use the CLI tool workflows if you need automatic subscription during development.
-
 ## CLI Tool Workflows (Development)
 
 The `bpfman-catalog` CLI tool provides three workflows for ephemeral testing during development:
