@@ -26,18 +26,40 @@ The generated catalogs are then built and deployed through CI/CD pipelines.
 
 ### Development Testing
 
-For local testing and development:
+#### Testing Template Changes
+
+For testing modifications to template files:
 
 ```bash
-# Test template changes
+# Regenerate, build, and deploy catalog
 make generate-catalogs build-image push-image deploy
 
-# Or use the CLI tool to test individual bundles
+# Install operator via OpenShift console UI
+# Navigate to Operators → OperatorHub and install the operator
+```
+
+This deploys only the CatalogSource. Operator installation is manual via the console.
+
+#### Testing Individual Bundles (CLI Tool)
+
+For testing individual bundle images with automated deployment:
+
+```bash
+# Build the CLI tool
 make build-cli
+
+# Generate catalog from bundle with full automation
 ./bin/bpfman-catalog prepare-catalog-build-from-bundle \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
+
+# Build, push, and auto-subscribe to operator
 make -C auto-generated/artefacts all
+
+# Clean up when done
+make -C auto-generated/artefacts undeploy
 ```
+
+The CLI tool provides complete automation including namespace creation, IDMS configuration, and automatic subscription to the operator.
 
 ## Directory Structure
 
