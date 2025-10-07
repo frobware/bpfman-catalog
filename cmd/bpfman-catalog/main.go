@@ -75,6 +75,10 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
 	}
 
+	if err := os.RemoveAll(r.OutputDir); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("cleaning output directory: %w", err)
+	}
+
 	logger := globals.Logger
 	logger.Debug("generating catalog artifacts from bundle", slog.String("bundle", r.BundleImage))
 
@@ -135,6 +139,10 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
 	}
 
+	if err := os.RemoveAll(r.OutputDir); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("cleaning output directory: %w", err)
+	}
+
 	catalogContent, err := os.ReadFile(r.CatalogYAML)
 	if err != nil {
 		return fmt.Errorf("reading catalog.yaml: %w", err)
@@ -175,6 +183,10 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error {
 	if filepath.Clean(r.OutputDir) == "." {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './manifests'")
+	}
+
+	if err := os.RemoveAll(r.OutputDir); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("cleaning output directory: %w", err)
 	}
 
 	logger := globals.Logger
