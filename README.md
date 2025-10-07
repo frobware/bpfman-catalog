@@ -1,77 +1,60 @@
 # bpfman-catalog
 
-OLM catalog used to release the Openshift eBPF Manager Operator.
+OLM catalog tooling for deploying the OpenShift eBPF Manager Operator.
 
 ## Overview
 
-This repository builds the BPFMan OLM catalog used to release new versions of the OpenShift eBPF Manager Operator. It generates operator catalogs from templates and packages them as OCI images for deployment to OpenShift clusters.
+This repository provides two complementary approaches for managing BPFMan operator catalogs:
+
+1. **Template-Based Releases** - Curated catalog templates for formal releases with controlled upgrade paths, built using traditional Makefile workflows
+2. **CLI Tool** - `bpfman-catalog` command-line tool for rapid development iteration, enabling developers to quickly build and deploy catalogs from bundle images
+
+Both approaches generate OLM File-Based Catalogs (FBC) and package them as OCI images for deployment to OpenShift clusters.
+
+## Quick Start
+
+### For Development (CLI Tool)
+
+```bash
+# Build the CLI tool
+make build-cli
+
+# Generate catalog from a bundle and deploy
+./bin/bpfman-catalog prepare-catalog-build-from-bundle \
+  quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
+make -C auto-generated/artefacts all
+```
+
+### For Releases (Templates)
+
+```bash
+# Generate, build, and deploy from templates
+make generate-catalogs build-image push-image deploy
+```
 
 ## Directory Structure
 
-- `templates/` - Source YAML files defining operator versions and channels
-  - `y-stream.yaml` - Y-stream minor version releases (default)
+- `templates/` - Curated catalog templates for releases
+  - `y-stream.yaml` - Y-stream minor version releases
   - `z-stream.yaml` - Z-stream patch releases
-- `auto-generated/` - Generated catalogs (created by `make generate-catalogs`)
-  - `catalog/` - Modern catalog format with bundle-object-to-csv-metadata migration
-- `cmd/bpfman-catalog/` - CLI tool for catalog operations
+- `auto-generated/` - Generated output directories
+  - `catalog/` - Catalogs from templates
+  - `artefacts/` - CLI-generated build files
+  - `manifests/` - CLI-generated Kubernetes manifests
+- `cmd/bpfman-catalog/` - CLI tool source code
+- `pkg/` - Go packages for catalog operations
 - `Dockerfile` - Container definition for building catalog images
-- `catalog-source.yaml` - CatalogSource resource for deploying to OpenShift
+- `catalog-source.yaml` - CatalogSource resource template
 
-## Common Commands
+## Configuration
 
-Run `make` to list all available targets.
+Environment variables and Make variables:
 
-### Generate Catalogs
-
-Generate catalogs from templates:
-```bash
-make generate-catalogs
-```
-
-### Build Container Image
-
-Build catalog image (defaults to y-stream):
-```bash
-make build-image
-```
-
-Build with z-stream patch releases:
-```bash
-make build-image BUILD_STREAM=z-stream
-```
-
-Build with custom image tag:
-```bash
-make build-image IMAGE=quay.io/myuser/bpfman-catalog:latest
-```
-
-### Deploy to Cluster
-
-Deploy catalog to OpenShift cluster:
-```bash
-make build-image push-image deploy
-```
-
-Individual steps:
-```bash
-make push-image    # Push built image
-make deploy        # Deploy catalog source to cluster
-make undeploy      # Remove catalog source from cluster
-```
-
-## Development Workflow
-
-1. Modify template files in `templates/` directory
-2. Run `make generate-catalogs` to update auto-generated catalogs
-3. Build and test with `make build-image`
-4. Push image with `make push-image`
-5. Deploy to test cluster with `make deploy`
-
-## Configuration Variables
-
-- `IMAGE` - Target image name (default: quay.io/$USER/bpfman-operator-catalog:latest)
-- `BUILD_STREAM` - Which template to use (default: y-stream, options: y-stream, z-stream)
-- `OCI_BIN` - Container runtime (docker or podman, auto-detected)
+- `IMAGE` - Target image name (default: `quay.io/$USER/bpfman-operator-catalog:latest`)
+- `BUILD_STREAM` - Template to use (default: `y-stream`, options: `y-stream`, `z-stream`)
+- `OCI_BIN` - Container runtime (`docker` or `podman`, auto-detected)
+- `LOG_LEVEL` - CLI logging level (default: `info`, options: `debug`, `info`, `warn`, `error`)
+- `LOG_FORMAT` - CLI log format (default: `text`, options: `text`, `json`)
 
 ## CLI Tool Workflows
 
