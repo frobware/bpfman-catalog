@@ -36,6 +36,31 @@ subscribe: deploy-catalog
 	@echo "Adding subscription for automatic operator installation..."
 	kubectl apply -f ./manifests/subscription/
 
+.PHONY: check
+check:
+	@echo "Checking catalog and operator resources..."
+	@echo ""
+	@echo "Namespaces:"
+	@kubectl get namespace -l app.kubernetes.io/created-by=bpfman-catalog-cli
+	@echo ""
+	@echo "CatalogSources:"
+	@kubectl get catalogsource -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces
+	@echo ""
+	@echo "OperatorGroups:"
+	@kubectl get operatorgroup -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces
+	@echo ""
+	@echo "Subscriptions:"
+	@kubectl get subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces
+	@echo ""
+	@echo "ImageDigestMirrorSets:"
+	@kubectl get imagedigestmirrorset -l app.kubernetes.io/created-by=bpfman-catalog-cli
+	@echo ""
+	@echo "Operator Pods:"
+	@kubectl get pods -l app.kubernetes.io/name=bpfman-operator --all-namespaces
+	@echo ""
+	@echo "ClusterServiceVersions:"
+	@kubectl get csv -l app.kubernetes.io/name=bpfman-operator --all-namespaces
+
 .PHONY: undeploy
 undeploy:
 	@echo "Removing bpfman-config ConfigMap (finalizer cleanup)..."
@@ -59,6 +84,7 @@ help:
 	@echo "  deploy-catalog           - Deploy catalog infrastructure only (need to build/push first)"
 	@echo "  build-and-deploy-catalog - Build, push, and deploy catalog infrastructure only"
 	@echo "  subscribe                - Add subscription for automatic installation (requires existing catalog)"
+	@echo "  check                    - Check status of deployed catalog and operator resources"
 	@echo "  undeploy                 - Remove catalog from cluster"
 	@echo "  all                      - Complete build -> push -> deploy catalog + subscription pipeline"
 	@echo ""
