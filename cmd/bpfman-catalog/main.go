@@ -64,8 +64,8 @@ type PrepareCatalogDeploymentFromImageCmd struct {
 
 // BundleInfoCmd shows bundle contents and dependencies.
 type BundleInfoCmd struct {
-	BundleImage string `arg:"" required:"" help:"Bundle image reference"`
-	Format      string `default:"text" enum:"text,json" help:"Output format (text, json)"`
+	BundleImages []string `arg:"" required:"" help:"Bundle image references"`
+	Format       string   `default:"text" enum:"text,json" help:"Output format (text, json)"`
 }
 
 // ListBundlesCmd lists available bundle images.
@@ -207,17 +207,19 @@ func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error
 }
 
 func (r *BundleInfoCmd) Run(globals *GlobalContext) error {
-	result, err := analysis.AnalyseBundle(globals.Context, r.BundleImage)
-	if err != nil {
-		return fmt.Errorf("failed to analyse bundle: %w", err)
-	}
+	for _, bundleImage := range r.BundleImages {
+		result, err := analysis.AnalyseBundle(globals.Context, bundleImage)
+		if err != nil {
+			return fmt.Errorf("failed to analyse bundle %s: %w", bundleImage, err)
+		}
 
-	output, err := analysis.FormatResult(result, r.Format)
-	if err != nil {
-		return fmt.Errorf("failed to format output: %w", err)
-	}
+		output, err := analysis.FormatResult(result, r.Format)
+		if err != nil {
+			return fmt.Errorf("failed to format output for %s: %w", bundleImage, err)
+		}
 
-	fmt.Print(output)
+		fmt.Print(output)
+	}
 
 	return nil
 }
