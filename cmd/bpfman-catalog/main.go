@@ -71,7 +71,7 @@ type BundleInfoCmd struct {
 // ListBundlesCmd lists available bundle images.
 type ListBundlesCmd struct {
 	Repository string `help:"Bundle repository (default: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream)"`
-	List       int    `default:"1" help:"Number of latest bundles to list"`
+	List       int    `default:"5" help:"Number of latest bundles to list"`
 	Format     string `default:"text" enum:"text,json" help:"Output format (text, json)"`
 }
 
@@ -254,21 +254,13 @@ func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
 }
 
 func formatBundlesText(bundles []*bundle.BundleMetadata) {
-	if len(bundles) == 1 {
-		b := bundles[0]
-		fmt.Printf("%s@%s %s\n", b.Image[:strings.LastIndex(b.Image, ":")], b.Digest, b.BuildDate)
-	} else {
-		fmt.Printf("Latest %d bundles (sorted by build date, newest first):\n\n", len(bundles))
-		for _, b := range bundles {
-			imageBase := b.Image[:strings.LastIndex(b.Image, ":")]
-			fmt.Printf("%s@%s\n", imageBase, b.Digest)
-			fmt.Printf("  Tag: %s\n", b.Tag)
-			fmt.Printf("  Build Date: %s\n", b.BuildDate)
-			if b.Version != "" {
-				fmt.Printf("  Version: %s\n", b.Version)
-			}
-			fmt.Println()
+	for _, b := range bundles {
+		imageBase := b.Image[:strings.LastIndex(b.Image, ":")]
+		gitCommitShort := b.Tag
+		if len(gitCommitShort) > 8 {
+			gitCommitShort = gitCommitShort[:8]
 		}
+		fmt.Printf("%s@%s %s g%s\n", imageBase, b.Digest, b.BuildDate, gitCommitShort)
 	}
 }
 
