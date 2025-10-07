@@ -311,6 +311,14 @@ func RenderCatalogWithBinary(ctx context.Context, fbcTemplate *FBCTemplate, ompB
 	return string(output), nil
 }
 
+// getUsernameOrDefault returns the USER environment variable or a default value
+func getUsernameOrDefault() string {
+	if user := os.Getenv("USER"); user != "" {
+		return user
+	}
+	return "myuser"
+}
+
 // GenerateMakefile generates a Makefile for building and deploying the catalog
 func GenerateMakefile(bundleImage, binaryPath, imageUUID, randomTTL string) string {
 	digestSuffix := extractDigestSuffix(bundleImage)
@@ -332,12 +340,14 @@ func GenerateMakefile(bundleImage, binaryPath, imageUUID, randomTTL string) stri
 		BinaryPath  string
 		ImageUUID   string
 		RandomTTL   string
+		Username    string
 	}{
 		BundleImage: bundleImage,
 		LocalTag:    localTag,
 		BinaryPath:  binaryPath,
 		ImageUUID:   imageUUID,
 		RandomTTL:   randomTTL,
+		Username:    getUsernameOrDefault(),
 	}
 
 	var buf bytes.Buffer
@@ -362,12 +372,14 @@ func GenerateWorkflow(bundleCount int, catalogRendered bool, outputDir, imageUUI
 		ImageUUID       string
 		RandomTTL       string
 		OutputDir       string
+		Username        string
 	}{
 		BundleCount:     bundleCount,
 		CatalogRendered: catalogRendered,
 		ImageUUID:       imageUUID,
 		RandomTTL:       randomTTL,
 		OutputDir:       outputDir,
+		Username:        getUsernameOrDefault(),
 	}
 
 	var buf bytes.Buffer
