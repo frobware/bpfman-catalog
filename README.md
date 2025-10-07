@@ -73,38 +73,61 @@ make undeploy      # Remove catalog source from cluster
 - `BUILD_STREAM` - Which template to use (default: y-stream, options: y-stream, z-stream)
 - `OCI_BIN` - Container runtime (docker or podman, auto-detected)
 
-## Development vs Release Workflows
+## CLI Tool Workflows
 
-### For Daily Development
-Use the `bpfman-catalog` CLI tool to create catalogs from individual bundles:
+The `bpfman-catalog` CLI tool streamlines catalog creation and deployment by automating the generation of build artefacts and Kubernetes manifests. It supports three primary workflows for different stages of the development and release process.
+
+### Building the CLI
+
 ```bash
-# Build the CLI tool
 make build-cli
+```
 
-# Generate catalog from a bundle image
+The tool will be available at `./bin/bpfman-catalog`. Run `./bin/bpfman-catalog --help` for detailed usage information.
+
+### Workflow 1: Testing Development Bundles
+
+**User Story**: As an OpenShift developer, I want to quickly test a newly built operator bundle by deploying it to my cluster without manually creating catalog configurations.
+
+```bash
+# Generate complete catalog build artefacts from a bundle image
 ./bin/bpfman-catalog prepare-catalog-build-from-bundle \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 
-# Build and deploy the generated catalog
+# Build catalog image, push to registry, and deploy to cluster
 make -C auto-generated/artefacts all
 ```
 
-See `./bin/bpfman-catalog --help` for more workflows including editing existing catalogs and deploying catalog images.
+This workflow generates a complete catalog from a single bundle image, including the FBC template, rendered catalog, Dockerfile, and deployment Makefile.
 
-### For Y-Stream Releases
-Use the `y-stream` template for minor version releases:
+### Workflow 2: Customising Existing Catalogs
+
+**User Story**: As an OpenShift developer, I want to modify an existing catalog configuration and rebuild it for testing changes to channel structure or bundle versions.
+
 ```bash
-make generate-catalogs
-make build-image
-make push-image
-make deploy
+# Edit the catalog YAML to add/remove bundles or modify channels
+vim auto-generated/catalog/y-stream.yaml
+
+# Generate build artefacts from the modified catalog
+./bin/bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml
+
+# Build catalog image, push to registry, and deploy to cluster
+make -C auto-generated/artefacts all
 ```
 
-### For Z-Stream Releases
-Use the `z-stream` template for patch releases:
+This workflow wraps an existing or hand-edited catalog.yaml with the necessary build infrastructure.
+
+### Workflow 3: Deploying Pre-built Catalogs
+
+**User Story**: As an OpenShift developer, I want to deploy a catalog image that's already been built and published to a registry without rebuilding it locally.
+
 ```bash
-make generate-catalogs
-make build-image BUILD_STREAM=z-stream
-make push-image
-make deploy
+# Generate Kubernetes manifests for an existing catalog image
+./bin/bpfman-catalog prepare-catalog-deployment-from-image \
+  quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest
+
+# Deploy the catalog to the cluster
+kubectl apply -f auto-generated/manifests/
 ```
+
+This workflow generates only the deployment manifests (CatalogSource, Namespace, ImageDigestMirrorSet) for a pre-existing catalog image.
