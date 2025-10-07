@@ -133,7 +133,7 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		slog.Bool("catalog_rendered", catalogRendered))
 
 	fmt.Print(workflow)
-	fmt.Printf("\n(This information is saved in %s/WORKFLOW.txt)\n", r.OutputDir)
+	fmt.Printf("\nThis information is saved in %s/WORKFLOW.txt\n", r.OutputDir)
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 		slog.String("output_dir", r.OutputDir))
 
 	fmt.Print(workflow)
-	fmt.Printf("\n(This information is saved in %s/WORKFLOW.txt)\n", r.OutputDir)
+	fmt.Printf("\nThis information is saved in %s/WORKFLOW.txt\n", r.OutputDir)
 
 	return nil
 }
@@ -346,32 +346,31 @@ Workflows:
 1. Build catalog from a bundle image
    Generates complete build artefacts from a bundle
 
-     $ bpfman-catalog prepare-catalog-build-from-bundle \
-         quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
-     $ make -C %s all
-       # builds image, pushes to registry, deploys to cluster
+   # Generates: Dockerfile, catalog.yaml, Makefile
+   $ bpfman-catalog prepare-catalog-build-from-bundle \
+       quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 
-   Produces: Dockerfile, catalog.yaml, Makefile
+   # builds image, pushes to registry, deploys to cluster
+   $ make -C %s all
 
-2. Build catalog from edited catalog.yaml
-   Wraps an existing or modified catalog.yaml with build artefacts
+2. Build catalog from catalog.yaml
+   Wraps an existing or modified catalog.yaml with build artefacts:
 
-     $ bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml
-     $ make -C %s all
-       # builds image, pushes to registry, deploys to cluster
+   # Generates: Dockerfile, Makefile
+   $ bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml
 
-   Produces: Dockerfile, Makefile
+   # builds image, pushes to registry, deploys to cluster
+   $ make -C %s all
 
 3. Deploy existing catalog image
    Generates Kubernetes manifests to deploy a catalog to a cluster
 
-     $ bpfman-catalog prepare-catalog-deployment-from-image \
-         quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest
-     $ kubectl apply -f %s/
-       # deploys catalog to cluster
+   # Produces: CatalogSource, Namespace, IDMS
+   $ bpfman-catalog prepare-catalog-deployment-from-image \
+       quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest
 
-   Produces: CatalogSource, Namespace, IDMS
-
+   # Deploy catalog to cluster
+   $ kubectl apply -f %s/
 `, DefaultArtefactsDir, DefaultArtefactsDir, DefaultManifestsDir)
 }
 
