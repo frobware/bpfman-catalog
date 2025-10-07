@@ -142,7 +142,7 @@ vet: ## Run go vet.
 	go vet ./...
 
 .PHONY: test
-test: ## Run unit tests.
+test: ## Run go unit tests.
 	go test ./...
 
 .PHONY: build-cli
