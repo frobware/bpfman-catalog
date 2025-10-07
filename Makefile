@@ -67,6 +67,10 @@ auto-generated/catalog/%.yaml: templates/%.yaml | auto-generated/catalog prereqs
 .PHONY: generate-catalogs
 generate-catalogs: $(CATALOGS) ## Generate catalogs from templates using local OPM.
 
+# Alternative catalog generation using containerised OPM. Useful for
+# using newer OPM versions without local build issues (opm v1.53+ has
+# go install problems). Requires Podman with BuildKit secret mounting
+# for registry authentication.
 .PHONY: generate-catalogs-container
 generate-catalogs-container: | auto-generated/catalog ## Generate catalogs using OPM container (requires Podman auth).
 	@if [ -z "$(OCI_BIN_PATH)" ]; then \
