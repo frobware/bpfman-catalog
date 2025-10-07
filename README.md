@@ -108,13 +108,13 @@ make push-image
 make deploy
 ```
 
-After deployment, the operator becomes available in the OpenShift console under **Operators → OperatorHub** where users can install it through the UI.
+After deployment, the operator becomes available in the OpenShift console under **Operators → OperatorHub** where it can be installed through the UI.
 
-This workflow creates only the CatalogSource resource, allowing administrators to control when and how the operator is installed rather than automatically subscribing to it.
+This workflow creates only the CatalogSource resource for testing. Use the CLI tool workflows if you need automatic subscription during development.
 
 ## CLI Tool Workflows (Development)
 
-The `bpfman-catalog` CLI tool is provided for development and testing scenarios, streamlining catalog creation from individual bundles. It supports three workflows for different development needs.
+The `bpfman-catalog` CLI tool provides three workflows for ephemeral testing during development:
 
 ### Building the CLI
 
@@ -124,49 +124,43 @@ make build-cli
 
 The tool will be available at `./bin/bpfman-catalog`. Run `./bin/bpfman-catalog --help` for detailed usage information.
 
-### Workflow 1: Testing Development Bundles
+### 1. Build catalog from a bundle image
 
-**User Story**: As an OpenShift developer, I want to quickly test a newly built operator bundle by deploying it to my cluster without manually creating catalog configurations.
+Generates complete build artefacts from a bundle.
 
 ```bash
-# Generate complete catalog build artefacts from a bundle image
+# Generates: Dockerfile, catalog.yaml, Makefile
 ./bin/bpfman-catalog prepare-catalog-build-from-bundle \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 
-# Build catalog image, push to registry, and deploy to cluster
+# Builds image, pushes to registry, deploys to cluster with auto-subscribe
 make -C auto-generated/artefacts all
 ```
 
-This workflow generates a complete catalog from a single bundle image, including the FBC template, rendered catalog, Dockerfile, and deployment Makefile.
+### 2. Build catalog from catalog.yaml
 
-### Workflow 2: Customising Existing Catalogs
-
-**User Story**: As an OpenShift developer, I want to modify an existing catalog configuration and rebuild it for testing changes to channel structure or bundle versions.
+Wraps an existing or modified catalog.yaml with build artefacts.
 
 ```bash
-# Edit the catalog YAML to add/remove bundles or modify channels
+# Edit the catalog YAML if needed
 vim auto-generated/catalog/y-stream.yaml
 
-# Generate build artefacts from the modified catalog
+# Generates: Dockerfile, Makefile
 ./bin/bpfman-catalog prepare-catalog-build-from-yaml auto-generated/catalog/y-stream.yaml
 
-# Build catalog image, push to registry, and deploy to cluster
+# Builds image, pushes to registry, deploys to cluster with auto-subscribe
 make -C auto-generated/artefacts all
 ```
 
-This workflow wraps an existing or hand-edited catalog.yaml with the necessary build infrastructure.
+### 3. Deploy existing catalog image
 
-### Workflow 3: Deploying Pre-built Catalogs
-
-**User Story**: As an OpenShift developer, I want to deploy a catalog image that's already been built and published to a registry without rebuilding it locally.
+Generates Kubernetes manifests to deploy a catalog to a cluster.
 
 ```bash
-# Generate Kubernetes manifests for an existing catalog image
+# Produces: CatalogSource, Namespace, IDMS, Subscription
 ./bin/bpfman-catalog prepare-catalog-deployment-from-image \
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest
 
-# Deploy the catalog to the cluster
+# Deploy catalog to cluster with auto-subscribe
 kubectl apply -f auto-generated/manifests/
 ```
-
-This workflow generates only the deployment manifests (CatalogSource, Namespace, ImageDigestMirrorSet) for a pre-existing catalog image.
