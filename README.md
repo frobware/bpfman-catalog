@@ -26,19 +26,19 @@ The generated catalogs are then built and deployed through CI/CD pipelines.
 
 ### Development Testing
 
-#### Testing Template Changes
+#### Testing Pre-built Catalog Images
 
-For testing modifications to template files:
+For deploying and testing pre-built catalog images:
 
 ```bash
-# Regenerate, build, and deploy catalog
-make generate-catalogs build-image push-image deploy
+# Build, push, and deploy catalog image
+make build-image push-image deploy
 
 # Install operator via OpenShift console UI
 # Navigate to Operators → OperatorHub and install the operator
 ```
 
-This deploys only the CatalogSource. Operator installation is manual via the console.
+This uses `catalog-source.yaml` as a template to deploy the catalog image. Operator installation is manual via the console.
 
 #### Testing Individual Bundles (CLI Tool)
 
