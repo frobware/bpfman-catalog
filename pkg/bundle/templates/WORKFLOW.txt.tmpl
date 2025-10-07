@@ -43,7 +43,7 @@ Ephemeral testing with ttl.sh:
   $ make -C {{.OutputDir}} IMAGE=ttl.sh/{{.ImageUUID}}:{{.RandomTTL}} all
 
 Persistent storage with quay.io:
-  $ make -C {{.OutputDir}} IMAGE=quay.io/{{.Username}}/my-catalog all
+  $ make -C {{.OutputDir}} IMAGE=quay.io/{{.Username}}/bpfman-catalog all
 
 Available Makefile Targets:
   $ make -C {{.OutputDir}} help
