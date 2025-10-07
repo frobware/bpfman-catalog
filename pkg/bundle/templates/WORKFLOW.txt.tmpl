@@ -6,11 +6,11 @@ bpfman Operator Catalog - Workflow Guide
 Generated Files:
 {{if .BundleCount}}  - fbc-template.yaml   (FBC template with {{.BundleCount}} bundles)
   - catalog.yaml        (Rendered catalog, ready to build)
-  - Dockerfile.catalog  (Dockerfile for catalog image)
+  - Dockerfile          (Dockerfile for catalog image)
   - Makefile            (Makefile for automated build/push/deploy)
 {{else}}  - fbc-template.yaml   (FBC template for your bundle)
 {{if .CatalogRendered}}  - catalog.yaml        (Rendered catalog, ready to build)
-{{end}}  - Dockerfile.catalog  (Dockerfile for catalog image)
+{{end}}  - Dockerfile          (Dockerfile for catalog image)
   - Makefile            (Makefile for automated build/push/deploy)
 {{end}}
 
