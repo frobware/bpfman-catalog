@@ -86,7 +86,7 @@ make build-cli
   quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
 
 # Build and deploy the generated catalog
-make -C artifacts all
+make -C auto-generated/artefacts all
 ```
 
 See `./bin/bpfman-catalog --help` for more workflows including editing existing catalogs and deploying catalog images.

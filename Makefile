@@ -170,7 +170,7 @@ test-cli-bundle-opm-library: build-cli ## Test the CLI with a sample bundle (OPM
 	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build-from-bundle \
 		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
 		--output-dir /tmp/bpfman-catalog-test-bundle-opm-library
-	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-opm-library"
+	@echo "Bundle artefacts generated in /tmp/bpfman-catalog-test-bundle-opm-library"
 	@ls -la /tmp/bpfman-catalog-test-bundle-opm-library/
 
 .PHONY: test-cli-bundle-opm-binary
@@ -181,7 +181,7 @@ test-cli-bundle-opm-binary: build-cli ## Test the CLI with a sample bundle (OPM 
 		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
 		--opm-bin $(LOCALBIN)/opm \
 		--output-dir /tmp/bpfman-catalog-test-bundle-opm-binary
-	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-opm-binary"
+	@echo "Bundle artefacts generated in /tmp/bpfman-catalog-test-bundle-opm-binary"
 	@ls -la /tmp/bpfman-catalog-test-bundle-opm-binary/
 
 ##@ General

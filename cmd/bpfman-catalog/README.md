@@ -21,8 +21,8 @@ kubectl apply -f ./deploy/catalog/
 
 ### Generate Catalog from Bundle
 ```bash
-# Generate catalog build artifacts from a bundle image
-bpfman-catalog generate-artifacts --from-bundle quay.io/namespace/bundle@sha256:def456... --output-dir ./build
+# Generate catalog build artefacts from a bundle image
+bpfman-catalog generate-artefacts --from-bundle quay.io/namespace/bundle@sha256:def456... --output-dir ./build
 
 # Build and push the catalog image
 cd ./build
