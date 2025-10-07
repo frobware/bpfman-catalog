@@ -1,7 +1,9 @@
 # Auto-generated Makefile for catalog deployment
 # Generated from bundle: {{.BundleImage}}
 
-IMAGE ?= quay.io/$(USER)/{{.LocalTag}}:latest
+# Username for image references - priority: BPFMAN_CATALOG_QUAY_USER > USER > fallback.
+QUAY_USER ?= $(or $(BPFMAN_CATALOG_QUAY_USER),$(USER),$(shell echo $$USER))
+IMAGE ?= quay.io/$(QUAY_USER)/{{.LocalTag}}:latest
 # Example: IMAGE=ttl.sh/{{.ImageUUID}}:{{.RandomTTL}}
 OCI_BIN ?= podman
 BPFMAN_CATALOG := {{.BinaryPath}}
