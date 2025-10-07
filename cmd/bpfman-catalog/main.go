@@ -71,7 +71,6 @@ type ListBundlesCmd struct {
 }
 
 func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
-	// Validate output directory - prevent overwriting current directory
 	if filepath.Clean(r.OutputDir) == "." {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
 	}
@@ -112,7 +111,6 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		return fmt.Errorf("writing Makefile: %w", err)
 	}
 
-	// Generate WORKFLOW.txt
 	catalogRendered := artifacts.CatalogYAML != ""
 	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
 	workflow := bundle.GenerateWorkflow(0, catalogRendered, r.OutputDir, imageUUID, randomTTL)
@@ -124,7 +122,6 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 		slog.String("output_dir", r.OutputDir),
 		slog.Bool("catalog_rendered", catalogRendered))
 
-	// Print workflow content to screen
 	fmt.Print(workflow)
 	fmt.Printf("\n(This information is saved in %s/WORKFLOW.txt)\n", r.OutputDir)
 	return nil
@@ -134,41 +131,33 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 	logger := globals.Logger
 	logger.Debug("preparing catalog build artifacts from yaml", slog.String("catalog_yaml", r.CatalogYAML))
 
-	// Validate output directory
 	if filepath.Clean(r.OutputDir) == "." {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './artifacts'")
 	}
 
-	// Read the catalog.yaml file
 	catalogContent, err := os.ReadFile(r.CatalogYAML)
 	if err != nil {
 		return fmt.Errorf("reading catalog.yaml: %w", err)
 	}
 
-	// Create output directory
 	w := writer.New(r.OutputDir)
 
-	// Write catalog.yaml to output directory
 	if err := w.WriteSingle("catalog.yaml", catalogContent); err != nil {
 		return fmt.Errorf("writing catalog.yaml: %w", err)
 	}
 
-	// Generate Dockerfile
 	dockerfile := bundle.GenerateCatalogDockerfile()
 	if err := w.WriteSingle("Dockerfile.catalog", []byte(dockerfile)); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
 
-	// Generate UUID/TTL once for use in both Makefile and WORKFLOW.txt
 	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
 
-	// Generate Makefile (use "from-yaml" as placeholder since no bundle reference)
 	makefile := bundle.GenerateMakefile("from-yaml", "", imageUUID, randomTTL)
 	if err := w.WriteSingle("Makefile", []byte(makefile)); err != nil {
 		return fmt.Errorf("writing Makefile: %w", err)
 	}
 
-	// Generate WORKFLOW.txt (catalog is already rendered, no bundle count)
 	workflow := bundle.GenerateWorkflow(0, true, r.OutputDir, imageUUID, randomTTL)
 	if err := w.WriteSingle("WORKFLOW.txt", []byte(workflow)); err != nil {
 		return fmt.Errorf("writing WORKFLOW.txt: %w", err)
@@ -177,7 +166,6 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 	logger.Debug("catalog build artifacts generated successfully",
 		slog.String("output_dir", r.OutputDir))
 
-	// Print workflow content to screen
 	fmt.Print(workflow)
 	fmt.Printf("\n(This information is saved in %s/WORKFLOW.txt)\n", r.OutputDir)
 
@@ -185,7 +173,6 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 }
 
 func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error {
-	// Validate output directory - prevent overwriting current directory
 	if filepath.Clean(r.OutputDir) == "." {
 		return fmt.Errorf("output directory cannot be the current working directory, please specify a named subdirectory like './manifests'")
 	}
@@ -196,7 +183,7 @@ func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error
 		slog.String("catalog_image", r.CatalogImage))
 
 	config := manifests.GeneratorConfig{
-		Namespace:     "bpfman", // Default namespace
+		Namespace:     "bpfman",
 		UseDigestName: true,
 		ImageRef:      r.CatalogImage,
 	}
@@ -261,7 +248,6 @@ func (r *AnalyzeBundleCmd) Run(globals *GlobalContext) error {
 func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
 	logger := globals.Logger
 
-	// Determine bundle reference
 	var bundleRef bundle.BundleRef
 	var err error
 
@@ -278,14 +264,12 @@ func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
 		slog.String("repository", bundleRef.String()),
 		slog.Int("limit", r.List))
 
-	// Fetch latest bundles
 	bundles, err := bundle.ListLatestBundles(globals.Context, bundleRef, r.List)
 	if err != nil {
 		logger.Debug("failed to list bundles", slog.String("error", err.Error()))
 		return fmt.Errorf("listing bundles: %w", err)
 	}
 
-	// Format output
 	if r.Format == "json" {
 		output, err := formatBundlesJSON(bundles)
 		if err != nil {
@@ -302,11 +286,9 @@ func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
 
 func formatBundlesText(bundles []*bundle.BundleMetadata) {
 	if len(bundles) == 1 {
-		// Single bundle - simple output
 		b := bundles[0]
 		fmt.Printf("%s@%s %s\n", b.Image[:strings.LastIndex(b.Image, ":")], b.Digest, b.BuildDate)
 	} else {
-		// Multiple bundles - list format
 		fmt.Printf("Latest %d bundles (sorted by build date, newest first):\n\n", len(bundles))
 		for _, b := range bundles {
 			imageBase := b.Image[:strings.LastIndex(b.Image, ":")]

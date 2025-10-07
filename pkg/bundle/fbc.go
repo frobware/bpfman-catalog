@@ -40,14 +40,10 @@ func GenerateImageUUIDAndTTL() (string, string) {
 
 // generateRandomTTL generates a random TTL between 15m and 30m for ttl.sh
 func generateRandomTTL() string {
-	// Seed random number generator with current time
 	rand.Seed(time.Now().UnixNano())
-
-	// Generate random duration between 15 and 30 minutes
 	minMinutes := 15
 	maxMinutes := 30
 	randomMinutes := rand.Intn(maxMinutes-minMinutes+1) + minMinutes
-
 	return fmt.Sprintf("%dm", randomMinutes)
 }
 
@@ -101,9 +97,6 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 		channel = "preview"
 	}
 
-	// Keep channel simple - always use "preview"
-
-	// Extract bundle metadata to get the real bundle name
 	bundleInfo, err := extractBundleInfo(bundleImage)
 	if err != nil {
 		return nil, fmt.Errorf("extracting bundle info: %w", err)
@@ -233,11 +226,10 @@ CMD ["serve", "/configs"]
 
 // extractDigestSuffix extracts the first 8 characters of a digest from an image reference
 func extractDigestSuffix(imageRef string) string {
-	// Look for @sha256: pattern
 	if idx := strings.Index(imageRef, "@sha256:"); idx != -1 {
-		digestStr := imageRef[idx+8:] // Skip "@sha256:"
+		digestStr := imageRef[idx+8:]
 		if len(digestStr) >= 8 {
-			return digestStr[:8] // First 8 chars of digest
+			return digestStr[:8]
 		}
 	}
 	return ""
@@ -245,7 +237,6 @@ func extractDigestSuffix(imageRef string) string {
 
 // extractBundleInfo extracts bundle name and package from bundle metadata
 func extractBundleInfo(bundleImage string) (*BundleInfo, error) {
-	// Suppress noisy INFO logs from operator-registry library
 	logrus.SetLevel(logrus.WarnLevel)
 
 	logger := logrus.NewEntry(logrus.New())
@@ -273,7 +264,6 @@ func extractBundleInfo(bundleImage string) (*BundleInfo, error) {
 		return nil, fmt.Errorf("rendering bundle: %w", err)
 	}
 
-	// Find the bundle entry in the rendered config
 	for _, bundle := range cfg.Bundles {
 		if bundle.Image == bundleImage {
 			return &BundleInfo{

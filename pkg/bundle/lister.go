@@ -131,7 +131,6 @@ func fetchBundleMetadata(ctx context.Context, bundleRef BundleRef, tag string) (
 	}
 	defer img.Close()
 
-	// Get the manifest digest
 	manifestBlob, _, err := img.Manifest(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fetching manifest for %s: %w", taggedRef, err)
@@ -142,7 +141,6 @@ func fetchBundleMetadata(ctx context.Context, bundleRef BundleRef, tag string) (
 		return nil, fmt.Errorf("computing digest for %s: %w", taggedRef, err)
 	}
 
-	// Get inspection data
 	inspect, err := img.Inspect(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("inspecting image %s: %w", taggedRef, err)
@@ -235,12 +233,10 @@ func fetchAllBundleMetadata(ctx context.Context, bundleRef BundleRef, tags []str
 		}
 	}
 
-	// Check if we were cancelled
 	if ctx.Err() != nil {
 		return nil, fmt.Errorf("operation cancelled: %w", ctx.Err())
 	}
 
-	// Fail if we couldn't fetch any bundles
 	if len(bundles) == 0 && len(errs) > 0 {
 		return nil, fmt.Errorf("failed to fetch any bundles: %v", errors.Join(errs...))
 	}
@@ -265,19 +261,16 @@ func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*
 		return nil, fmt.Errorf("limit must be positive: %d", limit)
 	}
 
-	// Fetch all tags
 	tags, err := fetchTags(ctx, bundleRef)
 	if err != nil {
 		return nil, fmt.Errorf("fetching tags: %w", err)
 	}
 
-	// Filter for git commit tags
 	commitTags := filterGitCommitTags(tags)
 	if len(commitTags) == 0 {
 		return nil, fmt.Errorf("no git commit tags found among %d tags", len(tags))
 	}
 
-	// Fetch metadata for all commit tags
 	bundles, err := fetchAllBundleMetadata(ctx, bundleRef, commitTags)
 	if err != nil {
 		return nil, fmt.Errorf("fetching metadata: %w", err)
@@ -287,10 +280,8 @@ func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*
 		return nil, errors.New("no bundles with metadata found")
 	}
 
-	// Sort by build date (newest first)
 	sortByBuildDate(bundles)
 
-	// Limit results
 	if limit > len(bundles) {
 		limit = len(bundles)
 	}
