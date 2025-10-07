@@ -6,18 +6,18 @@ BASE_IMAGE ?= registry.redhat.io/openshift4/ose-operator-registry-rhel9:v4.20
 BUILDVERSION ?= 4.20.0
 COMMIT ?= $(shell git rev-parse HEAD)
 
-# Image building tool - podman only for catalog generation
+# Image building tool - podman only for catalog generation.
 OCI_BIN_PATH := $(shell which podman)
 OCI_BIN ?= $(shell if [ -n "${OCI_BIN_PATH}" ]; then basename ${OCI_BIN_PATH}; else echo "podman"; fi)
 export OCI_BIN
 
 LOCALBIN ?= $(shell pwd)/bin
 
-# Go build configuration - tags required for operator-registry library integration
+# Go build configuration - tags required for operator-registry library integration.
 export GOFLAGS := -tags=json1,containers_image_openpgp
 export CGO_ENABLED := 0
 
-# OPM configuration - v1.52 for local install (v1.54 has go.mod replace issues)
+# OPM configuration - v1.52 for local install (v1.54 has go.mod replace issues).
 OPM_VERSION := v1.52.0
 OPM_IMAGE := quay.io/operator-framework/opm:$(OPM_VERSION)
 YQ_VERSION  := v4.35.2
@@ -49,7 +49,7 @@ $(YQ):
 .PHONY: prereqs
 prereqs: opm yq
 
-# Template files
+# Template files.
 TEMPLATES := $(wildcard templates/*.yaml)
 CATALOGS := $(patsubst templates/%.yaml,auto-generated/catalog/%.yaml,$(TEMPLATES))
 
@@ -58,7 +58,7 @@ auto-generated/catalog:
 
 ##@ Build
 
-# Pattern rule: generate catalog from template
+# Pattern rule: generate catalog from template.
 auto-generated/catalog/%.yaml: templates/%.yaml | auto-generated/catalog prereqs
 	$(OPM) alpha render-template basic --migrate-level=bundle-object-to-csv-metadata -o yaml $< > $@
 

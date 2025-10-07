@@ -8,27 +8,27 @@ import (
 	"github.com/openshift/bpfman-catalog/pkg/catalog"
 )
 
-// GeneratorConfig contains configuration for manifest generation
+// GeneratorConfig contains configuration for manifest generation.
 type GeneratorConfig struct {
 	ImageRef      string // Catalog or bundle image reference
 	Namespace     string // Target namespace (default: bpfman)
 	UseDigestName bool   // Whether to suffix resources with digest
 }
 
-// LabelContext contains labeling information for consistent resource labeling
+// LabelContext contains labeling information for consistent resource labeling.
 type LabelContext struct {
 	ShortDigest    string            // Digest suffix for unique identification
 	StandardLabels map[string]string // Standard labels applied to all resources
 	CustomLabels   map[string]string // Additional custom labels
 }
 
-// Generator creates Kubernetes manifests
+// Generator creates Kubernetes manifests.
 type Generator struct {
 	config       GeneratorConfig
 	labelContext *LabelContext
 }
 
-// NewGenerator creates a new manifest generator
+// NewGenerator creates a new manifest generator.
 func NewGenerator(config GeneratorConfig) *Generator {
 	if config.Namespace == "" {
 		config.Namespace = "bpfman"
@@ -40,7 +40,7 @@ func NewGenerator(config GeneratorConfig) *Generator {
 	}
 }
 
-// setupLabelContext initializes the label context with digest and standard labels
+// setupLabelContext initialises the label context with digest and standard labels.
 func (g *Generator) setupLabelContext(shortDigest string) {
 	standardLabels := map[string]string{
 		"app.kubernetes.io/name":       "bpfman-operator",
@@ -61,7 +61,7 @@ func (g *Generator) setupLabelContext(shortDigest string) {
 	}
 }
 
-// generateResourceName creates a resource name with optional digest suffix
+// generateResourceName creates a resource name with optional digest suffix.
 func (g *Generator) generateResourceName(baseName string) string {
 	if g.labelContext.ShortDigest != "" {
 		return fmt.Sprintf("%s-sha-%s", baseName, g.labelContext.ShortDigest)
@@ -69,7 +69,7 @@ func (g *Generator) generateResourceName(baseName string) string {
 	return baseName
 }
 
-// getMergedLabels returns standard labels merged with any custom labels and additional labels
+// getMergedLabels returns standard labels merged with any custom labels and additional labels.
 func (g *Generator) getMergedLabels(additionalLabels map[string]string) map[string]string {
 	merged := make(map[string]string)
 
@@ -91,7 +91,7 @@ func (g *Generator) getMergedLabels(additionalLabels map[string]string) map[stri
 	return merged
 }
 
-// NewNamespace creates a namespace manifest with consistent labeling
+// NewNamespace creates a namespace manifest with consistent labelling.
 func (g *Generator) NewNamespace(baseName string) *Namespace {
 	// Namespace-specific labels (like monitoring)
 	additionalLabels := map[string]string{
@@ -110,7 +110,7 @@ func (g *Generator) NewNamespace(baseName string) *Namespace {
 	}
 }
 
-// NewCatalogSource creates a catalog source manifest with consistent labeling
+// NewCatalogSource creates a catalog source manifest with consistent labelling.
 func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 	return &CatalogSource{
 		TypeMeta: TypeMeta{
@@ -134,7 +134,7 @@ func (g *Generator) NewCatalogSource(meta CatalogMetadata) *CatalogSource {
 	}
 }
 
-// NewOperatorGroup creates an operator group manifest with consistent labeling
+// NewOperatorGroup creates an operator group manifest with consistent labelling.
 func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
 	return &OperatorGroup{
 		TypeMeta: TypeMeta{
@@ -150,7 +150,7 @@ func (g *Generator) NewOperatorGroup(namespace string) *OperatorGroup {
 	}
 }
 
-// NewSubscription creates a subscription manifest with consistent labeling
+// NewSubscription creates a subscription manifest with consistent labelling.
 func (g *Generator) NewSubscription(namespace, catalogSourceName, channel string) *Subscription {
 	return &Subscription{
 		TypeMeta: TypeMeta{
@@ -172,7 +172,7 @@ func (g *Generator) NewSubscription(namespace, catalogSourceName, channel string
 	}
 }
 
-// NewImageDigestMirrorSet creates an IDMS manifest with consistent labeling
+// NewImageDigestMirrorSet creates an IDMS manifest with consistent labelling.
 func (g *Generator) NewImageDigestMirrorSet() *ImageDigestMirrorSet {
 	return &ImageDigestMirrorSet{
 		TypeMeta: TypeMeta{
@@ -197,7 +197,7 @@ func (g *Generator) NewImageDigestMirrorSet() *ImageDigestMirrorSet {
 	}
 }
 
-// GenerateFromCatalog generates manifests for a catalog image
+// GenerateFromCatalog generates manifests for a catalog image.
 func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, error) {
 	// Extract metadata from the catalog image
 	meta, err := catalog.ExtractMetadata(ctx, g.config.ImageRef)
@@ -249,8 +249,8 @@ func (g *Generator) GenerateFromCatalog(ctx context.Context) (*ManifestSet, erro
 	return manifestSet, nil
 }
 
-// GenerateFromBundle generates artefacts for a bundle image
-// This creates FBC template, catalog.yaml, and Dockerfile but does NOT build the image
+// GenerateFromBundle generates artefacts for a bundle image.
+// This creates FBC template, catalog.yaml, and Dockerfile but does NOT build the image.
 func (g *Generator) GenerateFromBundle(ctx context.Context) (*BundleArtefacts, error) {
 	// For bundles, we generate artefacts for the user to build their own catalog
 	// We don't generate deployment manifests directly since they need to build and push first
@@ -258,7 +258,7 @@ func (g *Generator) GenerateFromBundle(ctx context.Context) (*BundleArtefacts, e
 	return nil, fmt.Errorf("bundle support should use GenerateBundleArtefacts instead")
 }
 
-// BundleArtefacts contains generated files for building a catalog from a bundle
+// BundleArtefacts contains generated files for building a catalog from a bundle.
 type BundleArtefacts struct {
 	FBCTemplate  string // FBC template YAML
 	CatalogYAML  string // Rendered catalog (if opm is available)

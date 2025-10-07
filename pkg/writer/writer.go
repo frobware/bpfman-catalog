@@ -9,12 +9,12 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ManifestWriter writes manifests to files
+// ManifestWriter writes manifests to files.
 type ManifestWriter struct {
 	outputDir string
 }
 
-// New creates a new manifest writer
+// New creates a new manifest writer.
 func New(outputDir string) *ManifestWriter {
 	return &ManifestWriter{
 		outputDir: outputDir,

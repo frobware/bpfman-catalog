@@ -23,7 +23,7 @@ const (
 	gitCommitTagLength = 40
 )
 
-// BundleMetadata contains metadata about a bundle image
+// BundleMetadata contains metadata about a bundle image.
 type BundleMetadata struct {
 	Image     string        `json:"image"`
 	Tag       string        `json:"tag"`
@@ -33,19 +33,19 @@ type BundleMetadata struct {
 	Created   time.Time     `json:"created"`
 }
 
-// BundleRef represents a bundle image reference
+// BundleRef represents a bundle image reference.
 type BundleRef struct {
 	Registry string
 	Tenant   string
 	Repo     string
 }
 
-// String returns the full image reference
+// String returns the full image reference.
 func (r BundleRef) String() string {
 	return fmt.Sprintf("%s/%s/%s", r.Registry, r.Tenant, r.Repo)
 }
 
-// Validate checks if the bundle reference is valid
+// Validate checks if the bundle reference is valid.
 func (r BundleRef) Validate() error {
 	if r.Registry == "" {
 		return fmt.Errorf("registry cannot be empty")
@@ -59,7 +59,7 @@ func (r BundleRef) Validate() error {
 	return nil
 }
 
-// NewDefaultBundleRef creates a bundle reference with default values
+// NewDefaultBundleRef creates a bundle reference with default values.
 func NewDefaultBundleRef() BundleRef {
 	return BundleRef{
 		Registry: defaultRegistry,
@@ -68,7 +68,7 @@ func NewDefaultBundleRef() BundleRef {
 	}
 }
 
-// isGitCommitTag checks if a tag is a 40-character git commit SHA
+// isGitCommitTag checks if a tag is a 40-character git commit SHA.
 func isGitCommitTag(tag string) bool {
 	if len(tag) != gitCommitTagLength {
 		return false
@@ -81,7 +81,7 @@ func isGitCommitTag(tag string) bool {
 	return true
 }
 
-// filterGitCommitTags filters tags to only include git commit SHAs
+// filterGitCommitTags filters tags to only include git commit SHAs.
 func filterGitCommitTags(tags []string) []string {
 	var commitTags []string
 	for _, tag := range tags {
@@ -92,7 +92,7 @@ func filterGitCommitTags(tags []string) []string {
 	return commitTags
 }
 
-// fetchTags fetches all tags for a bundle repository
+// fetchTags fetches all tags for a bundle repository.
 func fetchTags(ctx context.Context, bundleRef BundleRef) ([]string, error) {
 	ref, err := docker.ParseReference(fmt.Sprintf("//%s", bundleRef.String()))
 	if err != nil {
@@ -112,7 +112,7 @@ func fetchTags(ctx context.Context, bundleRef BundleRef) ([]string, error) {
 	return tags, nil
 }
 
-// fetchBundleMetadata fetches metadata for a specific bundle tag
+// fetchBundleMetadata fetches metadata for a specific bundle tag.
 func fetchBundleMetadata(ctx context.Context, bundleRef BundleRef, tag string) (*BundleMetadata, error) {
 	taggedRef := fmt.Sprintf("%s:%s", bundleRef.String(), tag)
 	ref, err := docker.ParseReference(fmt.Sprintf("//%s", taggedRef))
@@ -161,7 +161,7 @@ func fetchBundleMetadata(ctx context.Context, bundleRef BundleRef, tag string) (
 		metadata.Created = *inspect.Created
 	}
 
-	// Require build-date for sorting
+	// Require build-date for sorting.
 	if metadata.BuildDate == "" {
 		return nil, fmt.Errorf("no build date found for %s", taggedRef)
 	}
@@ -169,7 +169,7 @@ func fetchBundleMetadata(ctx context.Context, bundleRef BundleRef, tag string) (
 	return metadata, nil
 }
 
-// fetchAllBundleMetadata fetches metadata for all tags concurrently
+// fetchAllBundleMetadata fetches metadata for all tags concurrently.
 func fetchAllBundleMetadata(ctx context.Context, bundleRef BundleRef, tags []string) ([]*BundleMetadata, error) {
 	var wg sync.WaitGroup
 	results := make(chan struct {
@@ -183,7 +183,7 @@ func fetchAllBundleMetadata(ctx context.Context, bundleRef BundleRef, tags []str
 		go func(tag string) {
 			defer wg.Done()
 
-			// Check for cancellation before starting work
+			// Check for cancellation before starting work.
 			select {
 			case <-ctx.Done():
 				results <- struct {
@@ -194,7 +194,7 @@ func fetchAllBundleMetadata(ctx context.Context, bundleRef BundleRef, tags []str
 			default:
 			}
 
-			// Rate limiting with cancellation support
+			// Rate limiting with cancellation support.
 			select {
 			case semaphore <- struct{}{}:
 				defer func() { <-semaphore }()
@@ -224,7 +224,7 @@ func fetchAllBundleMetadata(ctx context.Context, bundleRef BundleRef, tags []str
 
 	for result := range results {
 		if result.err != nil {
-			// Only collect non-cancellation errors
+			// Only collect non-cancellation errors.
 			if !errors.Is(result.err, context.Canceled) {
 				errs = append(errs, result.err)
 			}
@@ -244,14 +244,14 @@ func fetchAllBundleMetadata(ctx context.Context, bundleRef BundleRef, tags []str
 	return bundles, nil
 }
 
-// sortByBuildDate sorts bundles by build date (newest first)
+// sortByBuildDate sorts bundles by build date (newest first).
 func sortByBuildDate(bundles []*BundleMetadata) {
 	sort.Slice(bundles, func(i, j int) bool {
 		return bundles[i].BuildDate > bundles[j].BuildDate
 	})
 }
 
-// ListLatestBundles lists the latest N bundle builds from a repository
+// ListLatestBundles lists the latest N bundle builds from a repository.
 func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*BundleMetadata, error) {
 	if err := bundleRef.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid bundle reference: %w", err)
@@ -289,11 +289,11 @@ func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*
 	return bundles[:limit], nil
 }
 
-// ParseBundleRef parses a bundle image reference string into components
+// ParseBundleRef parses a bundle image reference string into components.
 func ParseBundleRef(imageRef string) (BundleRef, error) {
 	imageRef = strings.TrimPrefix(imageRef, "docker://")
 
-	// Remove tag or digest if present
+	// Remove tag or digest if present.
 	if idx := strings.LastIndex(imageRef, ":"); idx != -1 && !strings.Contains(imageRef[idx:], "/") {
 		imageRef = imageRef[:idx]
 	}
@@ -306,7 +306,7 @@ func ParseBundleRef(imageRef string) (BundleRef, error) {
 		return BundleRef{}, fmt.Errorf("invalid image reference format: %s (expected registry/tenant/repo)", imageRef)
 	}
 
-	// Handle quay.io/redhat-user-workloads/tenant/repo format
+	// Handle quay.io/redhat-user-workloads/tenant/repo format.
 	if len(parts) == 4 && parts[0] == "quay.io" && parts[1] == "redhat-user-workloads" {
 		return BundleRef{
 			Registry: fmt.Sprintf("%s/%s", parts[0], parts[1]),
@@ -326,7 +326,7 @@ func ParseBundleRef(imageRef string) (BundleRef, error) {
 	return BundleRef{}, fmt.Errorf("unsupported image reference format: %s", imageRef)
 }
 
-// FetchBundleMetadataByTag fetches metadata for a specific bundle tag
+// FetchBundleMetadataByTag fetches metadata for a specific bundle tag.
 func FetchBundleMetadataByTag(ctx context.Context, bundleRef BundleRef, tag string) (*BundleMetadata, error) {
 	return fetchBundleMetadata(ctx, bundleRef, tag)
 }

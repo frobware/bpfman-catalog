@@ -24,13 +24,13 @@ const (
 	DefaultManifestsDir = "auto-generated/manifests"
 )
 
-// GlobalContext contains global dependencies injected into commands
+// GlobalContext contains global dependencies injected into commands.
 type GlobalContext struct {
 	Context context.Context
 	Logger  *slog.Logger
 }
 
-// CLI defines the command-line interface structure
+// CLI defines the command-line interface structure.
 type CLI struct {
 	PrepareCatalogBuildFromBundle     PrepareCatalogBuildFromBundleCmd     `cmd:"prepare-catalog-build-from-bundle" help:"Prepare catalog build artefacts from a bundle image"`
 	PrepareCatalogBuildFromYAML       PrepareCatalogBuildFromYAMLCmd       `cmd:"prepare-catalog-build-from-yaml" help:"Prepare catalog build artefacts from an existing catalog.yaml file"`
@@ -43,33 +43,33 @@ type CLI struct {
 	LogFormat string `env:"LOG_FORMAT" default:"text" help:"Log format (text, json)"`
 }
 
-// PrepareCatalogBuildFromBundleCmd prepares catalog build artefacts from a bundle image
+// PrepareCatalogBuildFromBundleCmd prepares catalog build artefacts from a bundle image.
 type PrepareCatalogBuildFromBundleCmd struct {
 	BundleImage string `arg:"" required:"" help:"Bundle image reference"`
 	OutputDir   string `default:"${default_artefacts_dir}" help:"Output directory for generated artefacts"`
 	OpmBin      string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
 }
 
-// PrepareCatalogBuildFromYAMLCmd prepares catalog build artefacts from existing catalog.yaml
+// PrepareCatalogBuildFromYAMLCmd prepares catalog build artefacts from existing catalog.yaml.
 type PrepareCatalogBuildFromYAMLCmd struct {
 	CatalogYAML string `arg:"" type:"path" required:"" help:"Path to existing catalog.yaml file"`
 	OutputDir   string `default:"${default_artefacts_dir}" help:"Output directory for generated artefacts"`
 }
 
-// PrepareCatalogDeploymentFromImageCmd prepares deployment manifests from catalog image
+// PrepareCatalogDeploymentFromImageCmd prepares deployment manifests from catalog image.
 type PrepareCatalogDeploymentFromImageCmd struct {
 	CatalogImage string `arg:"" required:"" help:"Catalog image reference"`
 	OutputDir    string `default:"${default_manifests_dir}" help:"Output directory for generated manifests"`
 }
 
-// AnalyzeBundleCmd analyzes bundle contents and dependencies
+// AnalyzeBundleCmd analyses bundle contents and dependencies.
 type AnalyzeBundleCmd struct {
 	BundleImage string `arg:"" required:"" help:"Bundle image reference to analyze"`
 	Format      string `default:"text" enum:"text,json" help:"Output format (text, json)"`
 	ShowAll     bool   `help:"Show all images including inaccessible ones"`
 }
 
-// ListBundlesCmd lists available bundle images
+// ListBundlesCmd lists available bundle images.
 type ListBundlesCmd struct {
 	Repository string `help:"Bundle repository (default: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream)"`
 	List       int    `default:"1" help:"Number of latest bundles to list"`

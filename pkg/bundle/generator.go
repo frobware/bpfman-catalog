@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Artefacts contains generated files for building a catalog from a bundle
+// Artefacts contains generated files for building a catalog from a bundle.
 type Artefacts struct {
 	FBCTemplate string // FBC template YAML
 	CatalogYAML string // Rendered catalog (if opm is available)
@@ -16,14 +16,14 @@ type Artefacts struct {
 	Makefile    string // Makefile for building and deploying catalog
 }
 
-// Generator handles bundle to catalog conversion
+// Generator handles bundle to catalog conversion.
 type Generator struct {
 	bundleImage string
 	channel     string
 	ompBinPath  string // Optional path to external opm binary
 }
 
-// NewGenerator creates a new bundle generator
+// NewGenerator creates a new bundle generator.
 func NewGenerator(bundleImage, channel string) *Generator {
 	if channel == "" {
 		channel = "preview"
@@ -34,7 +34,7 @@ func NewGenerator(bundleImage, channel string) *Generator {
 	}
 }
 
-// NewGeneratorWithOpm creates a new bundle generator with external opm binary
+// NewGeneratorWithOpm creates a new bundle generator with external opm binary.
 func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
 	if channel == "" {
 		channel = "preview"
@@ -46,7 +46,7 @@ func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
 	}
 }
 
-// Generate creates all artefacts needed to build a catalog from a bundle
+// Generate creates all artefacts needed to build a catalog from a bundle.
 func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
 	// Generate FBC template
 	fbcTemplate, err := GenerateFBCTemplate(g.bundleImage, g.channel)

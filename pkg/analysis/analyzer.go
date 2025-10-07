@@ -17,27 +17,27 @@ func AnalyzeBundle(ctx context.Context, bundleRefStr string) (*BundleAnalysis, e
 		Images:    []ImageResult{},
 	}
 
-	// Extract bundle metadata
+	// Extract bundle metadata.
 	bundleInfo, err := extractBundleMetadata(ctx, bundleRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract bundle metadata: %w", err)
 	}
 	analysis.BundleInfo = bundleInfo
 
-	// Extract image references from the bundle
+	// Extract image references from the bundle.
 	imageRefs, err := ExtractImageReferences(ctx, bundleRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract image references: %w", err)
 	}
 
-	// Inspect each image reference
+	// Inspect each image reference.
 	imageResults, err := InspectImages(ctx, imageRefs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inspect images: %w", err)
 	}
 	analysis.Images = imageResults
 
-	// Generate summary statistics
+	// Generate summary statistics.
 	analysis.Summary = CalculateSummary(imageResults)
 
 	return analysis, nil
@@ -45,12 +45,12 @@ func AnalyzeBundle(ctx context.Context, bundleRefStr string) (*BundleAnalysis, e
 
 // extractBundleMetadata extracts metadata from the bundle image itself.
 func extractBundleMetadata(ctx context.Context, bundleRef ImageRef) (*ImageInfo, error) {
-	// Try to inspect the bundle directly
+	// Try to inspect the bundle directly.
 	if info, err := ExtractImageMetadata(ctx, bundleRef); err == nil {
 		return info, nil
 	}
 
-	// Try tenant workspace conversion if direct access fails
+	// Try tenant workspace conversion if direct access fails.
 	tenantRef, err := bundleRef.ConvertToTenantWorkspace()
 	if err != nil {
 		return nil, fmt.Errorf("bundle not accessible and cannot convert to tenant workspace: %w", err)
@@ -66,7 +66,7 @@ func extractBundleMetadata(ctx context.Context, bundleRef ImageRef) (*ImageInfo,
 
 // AnalyzeConfig holds configuration options for bundle analysis.
 type AnalyzeConfig struct {
-	ShowAll bool // Include inaccessible images in results
+	ShowAll bool // Include inaccessible images in results.
 }
 
 // AnalyzeBundleWithConfig performs analysis with specific configuration options.
@@ -76,7 +76,7 @@ func AnalyzeBundleWithConfig(ctx context.Context, bundleRefStr string, config An
 		return nil, err
 	}
 
-	// Filter results based on configuration
+	// Filter results based on configuration.
 	if !config.ShowAll {
 		filteredImages := make([]ImageResult, 0, len(analysis.Images))
 		for _, img := range analysis.Images {
@@ -86,7 +86,7 @@ func AnalyzeBundleWithConfig(ctx context.Context, bundleRefStr string, config An
 		}
 		analysis.Images = filteredImages
 
-		// Recalculate summary for filtered results
+		// Recalculate summary for filtered results.
 		analysis.Summary = CalculateSummary(filteredImages)
 	}
 

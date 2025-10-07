@@ -93,7 +93,7 @@ func formatImageResult(img ImageResult) string {
 		return b.String()
 	}
 
-	// Registry status
+	// Registry status.
 	switch img.Registry {
 	case DownstreamRegistry:
 		b.WriteString("    ✓ Published in downstream registry (registry.redhat.io)\n")
@@ -103,7 +103,7 @@ func formatImageResult(img ImageResult) string {
 		b.WriteString("    ✗ Registry status unknown\n")
 	}
 
-	// Metadata
+	// Metadata.
 	if img.Info != nil {
 		if img.Info.Created != nil {
 			b.WriteString(fmt.Sprintf("    Created: %s\n", img.Info.Created.Format(time.RFC3339)))
@@ -162,13 +162,13 @@ func buildCommitURL(gitURL, commit string) string {
 		return fmt.Sprintf("%s (commit: %s)", gitURL, commit)
 	}
 
-	// Handle GitHub URLs
+	// Handle GitHub URLs.
 	if strings.Contains(gitURL, "github.com") {
 		baseURL := strings.TrimSuffix(gitURL, ".git")
 		return fmt.Sprintf("%s/commit/%s", baseURL, commit)
 	}
 
-	// Fallback for other git hosts
+	// Fallback for other git hosts.
 	return fmt.Sprintf("%s (commit: %s)", gitURL, commit)
 }
 
@@ -178,12 +178,12 @@ func buildPRURL(gitURL string, prNumber int) string {
 		return ""
 	}
 
-	// Handle GitHub URLs
+	// Handle GitHub URLs.
 	if strings.Contains(gitURL, "github.com") {
 		baseURL := strings.TrimSuffix(gitURL, ".git")
 		return fmt.Sprintf("%s/pull/%d", baseURL, prNumber)
 	}
 
-	// For non-GitHub URLs, return empty (could extend for GitLab, etc.)
+	// For non-GitHub URLs, return empty (could extend for GitLab, etc.).
 	return ""
 }

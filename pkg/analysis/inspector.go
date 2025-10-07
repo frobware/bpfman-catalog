@@ -25,7 +25,7 @@ func InspectImage(ctx context.Context, imageRefStr string) (*ImageResult, error)
 		Reference: imageRefStr,
 	}
 
-	// Try the image at its specified registry
+	// Try the image at its specified registry.
 	if info, err := inspectImageRef(ctx, imageRef); err == nil {
 		result.Accessible = true
 		// Determine registry type based on the actual registry and repository
@@ -40,7 +40,7 @@ func InspectImage(ctx context.Context, imageRefStr string) (*ImageResult, error)
 		return result, nil
 	}
 
-	// Try tenant workspace conversion
+	// Try tenant workspace conversion.
 	tenantRef, err := imageRef.ConvertToTenantWorkspace()
 	if err != nil {
 		result.Accessible = false
@@ -87,16 +87,16 @@ func convertToImageInfo(info *types.ImageInspectInfo) *ImageInfo {
 
 	imageInfo := &ImageInfo{}
 
-	// Extract creation time
+	// Extract creation time.
 	if info.Created != nil {
 		imageInfo.Created = info.Created
 	}
 
-	// Extract metadata from labels
+	// Extract metadata from labels.
 	if info.Labels != nil {
 		imageInfo.Version = info.Labels["version"]
 
-		// Git-related labels (common patterns)
+		// Git-related labels (common patterns).
 		if commit := info.Labels["io.openshift.build.commit.id"]; commit != "" {
 			imageInfo.GitCommit = commit
 		} else if commit := info.Labels["vcs-ref"]; commit != "" {
@@ -109,7 +109,7 @@ func convertToImageInfo(info *types.ImageInspectInfo) *ImageInfo {
 			imageInfo.GitURL = url
 		}
 
-		// Additional metadata that might be useful
+		// Additional metadata that might be useful.
 		if buildName := info.Labels["io.openshift.build.name"]; buildName != "" {
 			// Sometimes build name contains useful information
 			imageInfo.PRTitle = buildName
