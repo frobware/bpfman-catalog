@@ -46,20 +46,20 @@ type CLI struct {
 // PrepareCatalogBuildFromBundleCmd prepares catalog build artefacts from a bundle image
 type PrepareCatalogBuildFromBundleCmd struct {
 	BundleImage string `arg:"" required:"" help:"Bundle image reference"`
-	OutputDir   string `default:"auto-generated/artefacts" help:"Output directory for generated artefacts"` // Must match DefaultArtefactsDir
+	OutputDir   string `default:"${default_artefacts_dir}" help:"Output directory for generated artefacts"`
 	OpmBin      string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
 }
 
 // PrepareCatalogBuildFromYAMLCmd prepares catalog build artefacts from existing catalog.yaml
 type PrepareCatalogBuildFromYAMLCmd struct {
 	CatalogYAML string `arg:"" type:"path" required:"" help:"Path to existing catalog.yaml file"`
-	OutputDir   string `default:"auto-generated/artefacts" help:"Output directory for generated artefacts"` // Must match DefaultArtefactsDir
+	OutputDir   string `default:"${default_artefacts_dir}" help:"Output directory for generated artefacts"`
 }
 
 // PrepareCatalogDeploymentFromImageCmd prepares deployment manifests from catalog image
 type PrepareCatalogDeploymentFromImageCmd struct {
 	CatalogImage string `arg:"" required:"" help:"Catalog image reference"`
-	OutputDir    string `default:"auto-generated/manifests" help:"Output directory for generated manifests"` // Must match DefaultManifestsDir
+	OutputDir    string `default:"${default_manifests_dir}" help:"Output directory for generated manifests"`
 }
 
 // AnalyzeBundleCmd analyzes bundle contents and dependencies
@@ -390,6 +390,10 @@ func main() {
 		kong.Name("bpfman-catalog"),
 		kong.Description("Deploy and manage bpfman operator catalogs on OpenShift"),
 		kong.UsageOnError(),
+		kong.Vars{
+			"default_artefacts_dir": DefaultArtefactsDir,
+			"default_manifests_dir": DefaultManifestsDir,
+		},
 		kong.Exit(func(code int) {
 			// Print workflow guide before exiting on help
 			if showWorkflowGuide && len(os.Args) == 2 {
