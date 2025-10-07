@@ -135,8 +135,12 @@ fmt: ## Run go fmt on the code
 vet: ## Run go vet on the code
 	go vet ./...
 
+.PHONY: test
+test: ## Run unit tests
+	go test -v ./...
+
 .PHONY: build-cli
-build-cli: fmt vet opm ## Build the bpfman-catalog CLI tool
+build-cli: fmt vet test opm ## Build the bpfman-catalog CLI tool
 	go build -o $(LOCALBIN)/bpfman-catalog ./cmd/bpfman-catalog
 
 .PHONY: install-cli
