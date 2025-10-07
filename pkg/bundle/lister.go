@@ -325,9 +325,3 @@ func ParseBundleRef(imageRef string) (BundleRef, error) {
 
 	return BundleRef{}, fmt.Errorf("unsupported image reference format: %s", imageRef)
 }
-
-// FetchBundleMetadataByTag fetches metadata for a specific bundle
-// tag.
-func FetchBundleMetadataByTag(ctx context.Context, bundleRef BundleRef, tag string) (*BundleMetadata, error) {
-	return fetchBundleMetadata(ctx, bundleRef, tag)
-}

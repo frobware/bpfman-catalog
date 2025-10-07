@@ -132,15 +132,6 @@ func GenerateFBCTemplate(bundleImage string, channel string) (*FBCTemplate, erro
 	return template, nil
 }
 
-// MarshalFBCTemplate marshals an FBC template to YAML.
-func MarshalFBCTemplate(template *FBCTemplate) (string, error) {
-	data, err := yaml.Marshal(template)
-	if err != nil {
-		return "", fmt.Errorf("marshaling FBC template: %w", err)
-	}
-	return string(data), nil
-}
-
 // RenderCatalog uses the OPM library to render the FBC template into
 // a full catalog.
 func RenderCatalog(ctx context.Context, fbcTemplate *FBCTemplate) (string, error) {

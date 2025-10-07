@@ -84,11 +84,6 @@ func (w *ManifestWriter) WriteAllSeparated(manifestSet *manifests.ManifestSet) e
 	return nil
 }
 
-// writeManifest writes a single manifest to a file.
-func (w *ManifestWriter) writeManifest(filename string, manifest interface{}) error {
-	return w.writeManifestToDir(w.outputDir, filename, manifest)
-}
-
 // writeManifestToDir writes a single manifest to a file in a specific
 // directory.
 func (w *ManifestWriter) writeManifestToDir(dir, filename string, manifest interface{}) error {
@@ -119,5 +114,5 @@ func (w *ManifestWriter) WriteSingle(filename string, manifest interface{}) erro
 		return nil
 	}
 
-	return w.writeManifest(filename, manifest)
+	return w.writeManifestToDir(w.outputDir, filename, manifest)
 }

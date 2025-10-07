@@ -204,15 +204,3 @@ func extractPRNumber(s string) int {
 
 	return 0
 }
-
-// EnhanceWithGitHubMetadata attempts to enhance metadata with GitHub
-// API information. This is a placeholder for future GitHub
-// integration.
-func EnhanceWithGitHubMetadata(ctx context.Context, metadata *ImageInfo) error {
-	// TODO: Implement GitHub API integration to fetch PR titles, commit messages, etc.
-	// This would require GitHub token and API calls to:
-	// - Get PR information from PR number.
-	// - Get commit information from commit hash.
-	// - Enhance the metadata with additional context.
-	return nil
-}
