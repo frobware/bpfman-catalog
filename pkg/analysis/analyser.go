@@ -72,22 +72,3 @@ type AnalyseConfig struct {
 
 // AnalyseBundleWithConfig performs analysis with specific
 // configuration options.
-func AnalyseBundleWithConfig(ctx context.Context, bundleRefStr string, config AnalyseConfig) (*BundleAnalysis, error) {
-	analysis, err := AnalyseBundle(ctx, bundleRefStr)
-	if err != nil {
-		return nil, err
-	}
-
-	if !config.ShowAll {
-		filteredImages := make([]ImageResult, 0, len(analysis.Images))
-		for _, img := range analysis.Images {
-			if img.Accessible {
-				filteredImages = append(filteredImages, img)
-			}
-		}
-		analysis.Images = filteredImages
-		analysis.Summary = CalculateSummary(filteredImages)
-	}
-
-	return analysis, nil
-}

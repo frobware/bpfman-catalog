@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -298,7 +299,8 @@ func RenderCatalogWithBinary(ctx context.Context, fbcTemplate *FBCTemplate, ompB
 
 	output, err := cmd.Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			return "", fmt.Errorf("omp command failed with exit code %d: %s", exitErr.ExitCode(), string(exitErr.Stderr))
 		}
 		return "", fmt.Errorf("running omp command: %w", err)

@@ -34,7 +34,7 @@ func NewGenerator(bundleImage, channel string) *Generator {
 	}
 }
 
-// NewGeneratorWithOpm creates a new bundle generator with external
+// NewGeneratorWithOmp NewGeneratorWithOpm creates a new bundle generator with external
 // opm binary.
 func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
 	if channel == "" {

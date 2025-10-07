@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	"github.com/operator-framework/operator-registry/alpha/declcfg"
 	"github.com/operator-framework/operator-registry/pkg/containertools"
 	"github.com/operator-framework/operator-registry/pkg/image"

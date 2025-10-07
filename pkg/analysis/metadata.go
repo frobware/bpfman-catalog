@@ -24,7 +24,11 @@ func ExtractImageMetadata(ctx context.Context, imageRef ImageRef) (*ImageInfo, e
 // extractMetadataFromLabels extracts comprehensive metadata from
 // image labels.
 func extractMetadataFromLabels(info *types.ImageInspectInfo) *ImageInfo {
-	if info == nil || info.Labels == nil {
+	if info == nil {
+		return &ImageInfo{}
+	}
+
+	if info.Labels == nil {
 		return &ImageInfo{
 			Created: info.Created,
 		}
