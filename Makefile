@@ -19,37 +19,29 @@ LOCALBIN ?= $(shell pwd)/bin
 export GOFLAGS := -tags=json1,containers_image_openpgp
 export CGO_ENABLED := 0
 
-# OPM configuration - v1.52 for local install (v1.54 has go.mod replace issues).
+# Tool versions (for dependency scanning).
 OPM_VERSION := v1.52.0
-OPM_IMAGE := quay.io/operator-framework/opm:$(OPM_VERSION)
 YQ_VERSION  := v4.35.2
 
-OPM ?= $(LOCALBIN)/opm
-YQ  ?= $(LOCALBIN)/yq
+# Pattern rule: install Go tools.
+$(LOCALBIN)/%:
+	@echo "Downloading $*..."
+	@GOBIN=$(LOCALBIN) go install $(TOOL_PKG_$*)@$(TOOL_VER_$*)
 
-# Define go-install macro for installing Go tools.
-# $1 = tool binary path
-# $2 = tool package
-# $3 = tool version
-define go-install
-	@[ -f $(1) ] || { \
-		echo "Downloading $(notdir $(1)) $(3)..." ; \
-		GOBIN=$(LOCALBIN) go install $(2)@$(3) ; \
-	}
-endef
+# Tool package and version mappings.
+TOOL_PKG_opm := github.com/operator-framework/operator-registry/cmd/opm
+TOOL_VER_opm := $(OPM_VERSION)
+TOOL_PKG_yq := github.com/mikefarah/yq/v4
+TOOL_VER_yq := $(YQ_VERSION)
 
-.PHONY: opm
-opm: $(OPM) ## Download opm locally if necessary.
-$(OPM):
-	$(call go-install,$(OPM),github.com/operator-framework/operator-registry/cmd/opm,$(OPM_VERSION))
+# OPM image for container-based catalog generation.
+OPM_IMAGE := quay.io/operator-framework/opm:$(OPM_VERSION)
 
-.PHONY: yq
-yq: $(YQ) ## Download yq locally if necessary.
-$(YQ):
-	$(call go-install,$(YQ),github.com/mikefarah/yq/v4,$(YQ_VERSION))
+OPM_BIN ?= $(LOCALBIN)/opm
+YQ_BIN  ?= $(LOCALBIN)/yq
 
-.PHONY: prereqs
-prereqs: opm yq
+.PHONY: download-prerequisites
+download-prerequisites: $(OPM_BIN) $(YQ_BIN) ## Download all required tools.
 
 # Template files.
 TEMPLATES := $(wildcard templates/*.yaml)
@@ -61,8 +53,8 @@ auto-generated/catalog:
 ##@ Build
 
 # Pattern rule: generate catalog from template.
-auto-generated/catalog/%.yaml: templates/%.yaml | auto-generated/catalog prereqs
-	$(OPM) alpha render-template basic --migrate-level=bundle-object-to-csv-metadata -o yaml $< > $@
+auto-generated/catalog/%.yaml: templates/%.yaml | auto-generated/catalog $(OPM_BIN)
+	$(OPM_BIN) alpha render-template basic --migrate-level=bundle-object-to-csv-metadata -o yaml $< > $@
 
 .PHONY: generate-catalogs
 generate-catalogs: $(CATALOGS) ## Generate catalogs from templates using local OPM.
@@ -111,8 +103,8 @@ push-image: ## Push catalog container image.
 ##@ Deployment
 
 .PHONY: deploy
-deploy: yq ## Deploy catalog to OpenShift cluster.
-	$(YQ) '.spec.image="$(IMAGE)"' ./catalog-source.yaml | kubectl apply -f -
+deploy: $(YQ_BIN) ## Deploy catalog to OpenShift cluster.
+	$(YQ_BIN) '.spec.image="$(IMAGE)"' ./catalog-source.yaml | kubectl apply -f -
 
 .PHONY: undeploy
 undeploy: ## Remove catalog from OpenShift cluster.
@@ -146,7 +138,7 @@ test: ## Run go unit tests.
 	go test ./...
 
 .PHONY: build-cli
-build-cli: fmt vet test opm ## Build the bpfman-catalog CLI tool.
+build-cli: fmt vet test $(OPM_BIN) ## Build the bpfman-catalog CLI tool.
 	go build -o $(LOCALBIN)/bpfman-catalog ./cmd/bpfman-catalog
 
 # Define test-cli-run macro for running CLI tests
