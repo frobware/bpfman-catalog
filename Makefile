@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 
 IMAGE ?= quay.io/$(USER)/bpfman-operator-catalog:latest
-BUILD_STREAM ?= dev
+BUILD_STREAM ?= y-stream
 BASE_IMAGE ?= registry.redhat.io/openshift4/ose-operator-registry-rhel9:v4.20
 BUILDVERSION ?= 4.20.0
 COMMIT ?= $(shell git rev-parse HEAD)
@@ -58,13 +58,12 @@ auto-generated/catalog:
 
 ##@ Build
 
+# Pattern rule: generate catalog from template
+auto-generated/catalog/%.yaml: templates/%.yaml | auto-generated/catalog prereqs
+	$(OPM) alpha render-template basic --migrate-level=bundle-object-to-csv-metadata -o yaml $< > $@
+
 .PHONY: generate-catalogs
-generate-catalogs: prereqs ## Generate catalogs from templates using local OPM.
-	@for template in $(TEMPLATES); do \
-		catalog="auto-generated/catalog/$$(basename $$template)" ; \
-		echo "Generating $$catalog (local)..." ; \
-		$(OPM) alpha render-template basic --migrate-level=bundle-object-to-csv-metadata -o yaml $$template > $$catalog ; \
-	done
+generate-catalogs: $(CATALOGS) ## Generate catalogs from templates using local OPM.
 
 .PHONY: generate-catalogs-container
 generate-catalogs-container: | auto-generated/catalog ## Generate catalogs using OPM container (requires Podman auth).
@@ -115,16 +114,16 @@ undeploy: ## Remove catalog from OpenShift cluster.
 
 ##@ Cleanup
 
-.PHONY: clean-generated-catalogs
-clean-generated-catalogs: ## Remove generated catalogs.
+.PHONY: clean-catalogs
+clean-catalogs: ## Remove generated catalogs.
 	rm -rf auto-generated/catalog/*.yaml
 
-.PHONY: clean-tools
-clean-tools: ## Remove downloaded tools.
+.PHONY: clean-bin
+clean-bin: ## Remove bin directory (tools and built binaries).
 	rm -rf $(LOCALBIN)
 
 .PHONY: clean
-clean: clean-generated-catalogs clean-tools ## Remove all generated files and tools.
+clean: clean-catalogs clean-bin ## Remove all generated files and binaries.
 
 ##@ CLI Tool
 
@@ -151,8 +150,8 @@ test-cli: build-cli ## Test the CLI with a sample catalog
 	@echo "Testing with a sample catalog image..."
 	@echo "Note: Use 'make test-cli-bundle' to test bundle support"
 	@rm -rf /tmp/bpfman-catalog-test-manifests
-	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-deployment \
-		--from-catalog quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest \
+	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-deployment-from-image \
+		quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest \
 		--output-dir /tmp/bpfman-catalog-test-manifests
 	@echo "Test manifests generated in /tmp/bpfman-catalog-test-manifests"
 	@ls -la /tmp/bpfman-catalog-test-manifests/catalog/
@@ -164,7 +163,7 @@ test-cli-bundle: test-cli-bundle-opm-library test-cli-bundle-opm-binary ## Test 
 test-cli-bundle-opm-library: build-cli ## Test the CLI with a sample bundle (OPM library mode)
 	@echo "Testing with a sample bundle image (OPM library mode)..."
 	@rm -rf /tmp/bpfman-catalog-test-bundle-opm-library
-	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build \
+	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build-from-bundle \
 		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
 		--output-dir /tmp/bpfman-catalog-test-bundle-opm-library
 	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-opm-library"
@@ -174,9 +173,9 @@ test-cli-bundle-opm-library: build-cli ## Test the CLI with a sample bundle (OPM
 test-cli-bundle-opm-binary: build-cli ## Test the CLI with a sample bundle (OPM binary mode)
 	@echo "Testing with a sample bundle image (OPM binary mode)..."
 	@rm -rf /tmp/bpfman-catalog-test-bundle-opm-binary
-	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build \
+	PATH="$(LOCALBIN):$$PATH" $(LOCALBIN)/bpfman-catalog prepare-catalog-build-from-bundle \
 		quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest \
-		--omp-bin $(LOCALBIN)/opm \
+		--opm-bin $(LOCALBIN)/opm \
 		--output-dir /tmp/bpfman-catalog-test-bundle-opm-binary
 	@echo "Bundle artifacts generated in /tmp/bpfman-catalog-test-bundle-opm-binary"
 	@ls -la /tmp/bpfman-catalog-test-bundle-opm-binary/
