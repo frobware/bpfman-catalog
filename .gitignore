@@ -31,3 +31,4 @@ go.work
 # CLI tool default output directories
 /auto-generated/artefacts/
 /auto-generated/manifests/
+.envrc
