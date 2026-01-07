@@ -42,6 +42,29 @@ build-and-deploy-catalog: build-catalog-image push-catalog-image deploy-catalog
 subscribe: deploy-catalog
 	@echo "Adding subscription for automatic operator installation..."
 	kubectl apply -f ./manifests/subscription/
+{{if .OperatorImageOverride}}
+
+# Operator image override: {{.OperatorImageOverride}}
+.PHONY: patch-operator
+patch-operator:
+	@echo "Waiting for operator deployment to be ready..."
+	@until kubectl get deployment bpfman-operator -n bpfman 2>/dev/null; do \
+		echo "Waiting for bpfman-operator deployment..."; \
+		sleep 5; \
+	done
+	kubectl wait --for=condition=available deployment/bpfman-operator -n bpfman --timeout=120s
+	@echo "Removing OLM ownership to prevent reconciliation..."
+	kubectl patch deployment bpfman-operator -n bpfman --type=json -p='[{"op": "remove", "path": "/metadata/ownerReferences"}]' 2>/dev/null || true
+	@echo "Patching operator deployment to use image: {{.OperatorImageOverride}}"
+	kubectl set image deployment/bpfman-operator -n bpfman bpfman-operator={{.OperatorImageOverride}}
+	@echo "Waiting for rollout..."
+	kubectl rollout status deployment/bpfman-operator -n bpfman --timeout=120s
+	@echo "Operator image patched successfully."
+	kubectl get pods -n bpfman -o wide | grep bpfman-operator
+
+.PHONY: subscribe-and-patch
+subscribe-and-patch: subscribe patch-operator
+{{end}}
 
 .PHONY: check
 check:
@@ -72,6 +95,10 @@ help:
 	@echo "  deploy-catalog           - Deploy catalog infrastructure only (need to build/push first)"
 	@echo "  build-and-deploy-catalog - Build, push, and deploy catalog infrastructure only"
 	@echo "  subscribe                - Add subscription for automatic installation (requires existing catalog)"
+{{- if .OperatorImageOverride}}
+	@echo "  patch-operator           - Patch operator deployment to use override image"
+	@echo "  subscribe-and-patch      - Subscribe and patch operator image in one step"
+{{- end}}
 	@echo "  check                    - Check status of deployed catalog and operator resources"
 	@echo "  undeploy                 - Remove catalog from cluster"
 	@echo "  all                      - Complete build -> push -> deploy catalog + subscription pipeline"

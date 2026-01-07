@@ -322,7 +322,7 @@ func getUsernameOrDefault() string {
 
 // GenerateMakefile generates a Makefile for building and deploying
 // the catalog.
-func GenerateMakefile(bundleImage, binaryPath, imageUUID, randomTTL string) string {
+func GenerateMakefile(bundleImage, binaryPath, imageUUID, randomTTL, operatorImageOverride string) string {
 	digestSuffix := extractDigestSuffix(bundleImage)
 
 	localTag := "bpfman-catalog"
@@ -336,19 +336,21 @@ func GenerateMakefile(bundleImage, binaryPath, imageUUID, randomTTL string) stri
 	}
 
 	data := struct {
-		BundleImage string
-		LocalTag    string
-		BinaryPath  string
-		ImageUUID   string
-		RandomTTL   string
-		Username    string
+		BundleImage           string
+		LocalTag              string
+		BinaryPath            string
+		ImageUUID             string
+		RandomTTL             string
+		Username              string
+		OperatorImageOverride string
 	}{
-		BundleImage: bundleImage,
-		LocalTag:    localTag,
-		BinaryPath:  binaryPath,
-		ImageUUID:   imageUUID,
-		RandomTTL:   randomTTL,
-		Username:    getUsernameOrDefault(),
+		BundleImage:           bundleImage,
+		LocalTag:              localTag,
+		BinaryPath:            binaryPath,
+		ImageUUID:             imageUUID,
+		RandomTTL:             randomTTL,
+		Username:              getUsernameOrDefault(),
+		OperatorImageOverride: operatorImageOverride,
 	}
 
 	var buf bytes.Buffer

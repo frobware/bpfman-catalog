@@ -45,9 +45,10 @@ type CLI struct {
 
 // PrepareCatalogBuildFromBundleCmd prepares catalog build artefacts from a bundle image.
 type PrepareCatalogBuildFromBundleCmd struct {
-	BundleImage string `arg:"" required:"" help:"Bundle image reference"`
-	OutputDir   string `default:"${default_artefacts_dir}" help:"Output directory for generated artefacts"`
-	OpmBin      string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
+	BundleImage   string `arg:"" required:"" help:"Bundle image reference"`
+	OutputDir     string `default:"${default_artefacts_dir}" help:"Output directory for generated artefacts"`
+	OpmBin        string `type:"path" help:"Path to opm binary for external rendering (uses library by default)"`
+	OperatorImage string `help:"Override operator image (generates post-install patch)"`
 }
 
 // PrepareCatalogBuildFromYAMLCmd prepares catalog build artefacts from existing catalog.yaml.
@@ -85,9 +86,9 @@ func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
 
 	var gen *bundle.Generator
 	if r.OpmBin != "" {
-		gen = bundle.NewGeneratorWithOmp(r.BundleImage, "preview", r.OpmBin)
+		gen = bundle.NewGeneratorWithOmp(r.BundleImage, "preview", r.OpmBin, r.OperatorImage)
 	} else {
-		gen = bundle.NewGenerator(r.BundleImage, "preview")
+		gen = bundle.NewGenerator(r.BundleImage, "preview", r.OperatorImage)
 	}
 
 	artefacts, err := gen.Generate(globals.Context)
@@ -158,7 +159,7 @@ func (r *PrepareCatalogBuildFromYAMLCmd) Run(globals *GlobalContext) error {
 
 	imageUUID, randomTTL := bundle.GenerateImageUUIDAndTTL()
 
-	makefile := bundle.GenerateMakefile("from-yaml", execPath, imageUUID, randomTTL)
+	makefile := bundle.GenerateMakefile("from-yaml", execPath, imageUUID, randomTTL, "")
 	if err := w.WriteSingle("Makefile", []byte(makefile)); err != nil {
 		return fmt.Errorf("writing Makefile: %w", err)
 	}
