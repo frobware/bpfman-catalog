@@ -71,8 +71,7 @@ type BundleInfoCmd struct {
 // ListBundlesCmd lists available bundle images.
 type ListBundlesCmd struct {
 	Repository string `help:"Bundle repository (default: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream)"`
-	List       int    `default:"5" help:"Number of latest bundles to list"`
-	Format     string `default:"text" enum:"text,json" help:"Output format (text, json)"`
+	Limit      int    `short:"n" default:"5" help:"Number of bundles to display"`
 }
 
 func (r *PrepareCatalogBuildFromBundleCmd) Run(globals *GlobalContext) error {
@@ -237,33 +236,18 @@ func (r *ListBundlesCmd) Run(globals *GlobalContext) error {
 		bundleRef = bundle.NewDefaultBundleRef()
 	}
 
-	bundles, err := bundle.ListLatestBundles(globals.Context, bundleRef, r.List)
+	bundles, err := bundle.ListLatestBundles(globals.Context, bundleRef, r.Limit)
 	if err != nil {
 		return fmt.Errorf("listing bundles: %w", err)
 	}
 
-	if r.Format == "json" {
-		output, err := formatBundlesJSON(bundles)
-		if err != nil {
-			return fmt.Errorf("formatting JSON output: %w", err)
-		}
-		fmt.Println(output)
-	} else {
-		formatBundlesText(bundles)
+	output, err := formatBundlesJSON(bundles)
+	if err != nil {
+		return fmt.Errorf("formatting JSON output: %w", err)
 	}
+	fmt.Println(output)
 
 	return nil
-}
-
-func formatBundlesText(bundles []*bundle.BundleMetadata) {
-	for _, b := range bundles {
-		imageBase := b.Image[:strings.LastIndex(b.Image, ":")]
-		gitCommitShort := b.Tag
-		if len(gitCommitShort) > 8 {
-			gitCommitShort = gitCommitShort[:8]
-		}
-		fmt.Printf("%s@%s %s g%s\n", imageBase, b.Digest, b.BuildDate, gitCommitShort)
-	}
 }
 
 func formatBundlesJSON(bundles []*bundle.BundleMetadata) (string, error) {
