@@ -54,12 +54,9 @@ func NewDefaultBundleRef() BundleRef {
 	}
 }
 
-// isGitCommitTag checks if a tag is a 40-character git commit SHA.
-func isGitCommitTag(tag string) bool {
-	if len(tag) != gitCommitTagLength {
-		return false
-	}
-	for _, c := range tag {
+// isHexString checks if a string contains only lowercase hexadecimal characters.
+func isHexString(s string) bool {
+	for _, c := range s {
 		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
 			return false
 		}
@@ -67,15 +64,30 @@ func isGitCommitTag(tag string) bool {
 	return true
 }
 
-// filterGitCommitTags filters tags to only include git commit SHAs.
-func filterGitCommitTags(tags []string) []string {
-	var commitTags []string
+// isGitCommitTag checks if a tag is a 40-character git commit SHA.
+func isGitCommitTag(tag string) bool {
+	return len(tag) == gitCommitTagLength && isHexString(tag)
+}
+
+// isPRTag checks if a tag is a PR build tag (on-pr-<commit-sha>).
+func isPRTag(tag string) bool {
+	const prPrefix = "on-pr-"
+	if !strings.HasPrefix(tag, prPrefix) {
+		return false
+	}
+	commitPart := strings.TrimPrefix(tag, prPrefix)
+	return len(commitPart) == gitCommitTagLength && isHexString(commitPart)
+}
+
+// filterBuildTags filters tags to include git commit SHAs and PR build tags.
+func filterBuildTags(tags []string) []string {
+	var buildTags []string
 	for _, tag := range tags {
-		if isGitCommitTag(tag) {
-			commitTags = append(commitTags, tag)
+		if isGitCommitTag(tag) || isPRTag(tag) {
+			buildTags = append(buildTags, tag)
 		}
 	}
-	return commitTags
+	return buildTags
 }
 
 // fetchTags fetches all tags for a bundle repository.
@@ -226,10 +238,41 @@ func fetchAllBundleMetadata(ctx context.Context, bundleRef BundleRef, tags []str
 	return bundles, nil
 }
 
-// sortByBuildDate sorts bundles by build date (newest first).
+// parseBuildDate attempts to parse a build date string into a time.Time.
+// It tries multiple common formats used by container build systems.
+func parseBuildDate(dateStr string) (time.Time, error) {
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05Z",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+	for _, format := range formats {
+		if t, err := time.Parse(format, dateStr); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unable to parse date: %s", dateStr)
+}
+
+// sortByBuildDate sorts bundles by build date (oldest first, newest last).
 func sortByBuildDate(bundles []*BundleMetadata) {
 	sort.Slice(bundles, func(i, j int) bool {
-		return bundles[i].BuildDate > bundles[j].BuildDate
+		ti, erri := parseBuildDate(bundles[i].BuildDate)
+		tj, errj := parseBuildDate(bundles[j].BuildDate)
+
+		// If both dates parse successfully, compare them
+		if erri == nil && errj == nil {
+			return ti.Before(tj)
+		}
+
+		// Fall back to Created time if available
+		if !bundles[i].Created.IsZero() && !bundles[j].Created.IsZero() {
+			return bundles[i].Created.Before(bundles[j].Created)
+		}
+
+		// Last resort: string comparison
+		return bundles[i].BuildDate < bundles[j].BuildDate
 	})
 }
 
@@ -241,12 +284,12 @@ func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*
 		return nil, fmt.Errorf("fetching tags: %w", err)
 	}
 
-	commitTags := filterGitCommitTags(tags)
-	if len(commitTags) == 0 {
-		return nil, fmt.Errorf("no git commit tags found among %d tags", len(tags))
+	buildTags := filterBuildTags(tags)
+	if len(buildTags) == 0 {
+		return nil, fmt.Errorf("no build tags found among %d tags", len(tags))
 	}
 
-	bundles, err := fetchAllBundleMetadata(ctx, bundleRef, commitTags)
+	bundles, err := fetchAllBundleMetadata(ctx, bundleRef, buildTags)
 	if err != nil {
 		return nil, fmt.Errorf("fetching metadata: %w", err)
 	}
@@ -261,7 +304,8 @@ func ListLatestBundles(ctx context.Context, bundleRef BundleRef, limit int) ([]*
 		limit = len(bundles)
 	}
 
-	return bundles[:limit], nil
+	// Take the last N (newest) bundles, preserving oldest-first order
+	return bundles[len(bundles)-limit:], nil
 }
 
 // ParseBundleRef parses a bundle image reference string into
