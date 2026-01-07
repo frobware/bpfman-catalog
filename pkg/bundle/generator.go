@@ -18,32 +18,34 @@ type Artefacts struct {
 
 // Generator handles bundle to catalog conversion.
 type Generator struct {
-	bundleImage string
-	channel     string
-	ompBinPath  string // Optional path to external opm binary
+	bundleImage           string
+	channel               string
+	ompBinPath            string // Optional path to external opm binary
+	operatorImageOverride string // Optional operator image override
 }
 
 // NewGenerator creates a new bundle generator.
-func NewGenerator(bundleImage, channel string) *Generator {
+func NewGenerator(bundleImage, channel, operatorImageOverride string) *Generator {
 	if channel == "" {
 		channel = "preview"
 	}
 	return &Generator{
-		bundleImage: bundleImage,
-		channel:     channel,
+		bundleImage:           bundleImage,
+		channel:               channel,
+		operatorImageOverride: operatorImageOverride,
 	}
 }
 
-// NewGeneratorWithOmp NewGeneratorWithOpm creates a new bundle generator with external
-// opm binary.
-func NewGeneratorWithOmp(bundleImage, channel, ompBinPath string) *Generator {
+// NewGeneratorWithOmp creates a new bundle generator with external opm binary.
+func NewGeneratorWithOmp(bundleImage, channel, ompBinPath, operatorImageOverride string) *Generator {
 	if channel == "" {
 		channel = "preview"
 	}
 	return &Generator{
-		bundleImage: bundleImage,
-		channel:     channel,
-		ompBinPath:  ompBinPath,
+		bundleImage:           bundleImage,
+		channel:               channel,
+		ompBinPath:            ompBinPath,
+		operatorImageOverride: operatorImageOverride,
 	}
 }
 
@@ -66,7 +68,7 @@ func (g *Generator) Generate(ctx context.Context) (*Artefacts, error) {
 	artefacts := &Artefacts{
 		FBCTemplate: string(fbcYAML),
 		Dockerfile:  GenerateCatalogDockerfile(),
-		Makefile:    GenerateMakefile(g.bundleImage, execPath, imageUUID, randomTTL),
+		Makefile:    GenerateMakefile(g.bundleImage, execPath, imageUUID, randomTTL, g.operatorImageOverride),
 	}
 
 	catalogYAML, err := g.renderCatalog(ctx, fbcTemplate)
