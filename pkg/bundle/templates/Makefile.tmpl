@@ -78,9 +78,11 @@ check:
 
 .PHONY: undeploy
 undeploy:
-	@echo "Removing bpfman-config ConfigMap (finalizer cleanup)..."
-	kubectl delete configmap bpfman-config -n bpfman --ignore-not-found
-	kubectl wait --for=delete configmap/bpfman-config -n bpfman --timeout=60s
+	@echo "Removing bpfman-config (finalizer cleanup)..."
+	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
+		kubectl delete --ignore-not-found configs.bpfman.io bpfman-config; \
+		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
+	fi
 	@echo "Removing all bpfman-catalog-cli resources..."
 	kubectl delete all -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
 	kubectl delete catalogsource,operatorgroup,subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
