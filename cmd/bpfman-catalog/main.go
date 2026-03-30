@@ -61,6 +61,7 @@ type PrepareCatalogBuildFromYAMLCmd struct {
 type PrepareCatalogDeploymentFromImageCmd struct {
 	CatalogImage string `arg:"" required:"" help:"Catalog image reference"`
 	OutputDir    string `default:"${default_manifests_dir}" help:"Output directory for generated manifests"`
+	SkipIDMS     bool   `help:"Skip generating ImageDigestMirrorSet (for clusters where IDMS is not supported, e.g. ROSA/HyperShift)"`
 }
 
 // BundleInfoCmd shows bundle contents and dependencies.
@@ -188,6 +189,7 @@ func (r *PrepareCatalogDeploymentFromImageCmd) Run(globals *GlobalContext) error
 		Namespace:     "bpfman",
 		UseDigestName: true,
 		ImageRef:      r.CatalogImage,
+		SkipIDMS:      r.SkipIDMS,
 	}
 
 	generator := manifests.NewGenerator(config)

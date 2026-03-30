@@ -13,6 +13,7 @@ type GeneratorConfig struct {
 	ImageRef      string // Catalog or bundle image reference
 	Namespace     string // Target namespace (default: bpfman)
 	UseDigestName bool   // Whether to suffix resources with digest
+	SkipIDMS      bool   // Whether to skip generating the ImageDigestMirrorSet
 }
 
 // LabelContext contains labeling information for consistent resource labeling.
@@ -235,9 +236,14 @@ func (g *Generator) buildManifestSet(catalogMeta CatalogMetadata, channel string
 		return nil, fmt.Errorf("no default channel found in catalog metadata")
 	}
 
+	var idms *ImageDigestMirrorSet
+	if !g.config.SkipIDMS {
+		idms = g.NewImageDigestMirrorSet()
+	}
+
 	manifestSet := &ManifestSet{
 		Namespace:     g.NewNamespace(g.config.Namespace),
-		IDMS:          g.NewImageDigestMirrorSet(),
+		IDMS:          idms,
 		CatalogSource: g.NewCatalogSource(catalogMeta),
 	}
 

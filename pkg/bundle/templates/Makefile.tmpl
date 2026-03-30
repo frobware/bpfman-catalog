@@ -13,6 +13,10 @@ export OCI_BIN
 
 BPFMAN_CATALOG := {{.BinaryPath}}
 
+# Set SKIP_IDMS=1 to skip ImageDigestMirrorSet generation (e.g. for ROSA/HyperShift).
+SKIP_IDMS ?=
+SKIP_IDMS_FLAG := $(if $(SKIP_IDMS),--skip-idms,)
+
 .PHONY: build-catalog-image
 build-catalog-image:
 	$(OCI_BIN) build -f Dockerfile -t $(IMAGE) .
@@ -32,7 +36,7 @@ deploy-catalog:
 	$(eval IMAGE_BASE := $(shell echo $(IMAGE) | sed 's/:.*$$//'))
 	$(eval IMAGE_WITH_DIGEST := $(IMAGE_BASE)@$(DIGEST))
 	@echo "Deploying catalog infrastructure with digest: $(IMAGE_WITH_DIGEST)"
-	$(BPFMAN_CATALOG) prepare-catalog-deployment-from-image $(IMAGE_WITH_DIGEST) --output-dir ./manifests
+	$(BPFMAN_CATALOG) prepare-catalog-deployment-from-image $(IMAGE_WITH_DIGEST) --output-dir ./manifests $(SKIP_IDMS_FLAG)
 	kubectl apply -f ./manifests/catalog/
 
 .PHONY: build-and-deploy-catalog
