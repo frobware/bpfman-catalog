@@ -83,9 +83,21 @@ undeploy:
 		kubectl delete --ignore-not-found configs.bpfman.io bpfman-config; \
 		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
 	fi
-	@echo "Removing all bpfman-catalog-cli resources..."
-	kubectl delete all -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
+	@echo "Removing OLM subscription and operator group..."
 	kubectl delete catalogsource,operatorgroup,subscription -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
+	@echo "Waiting for CSV cleanup..."
+	@while kubectl get csv -n bpfman -o name 2>/dev/null | grep -q bpfman; do \
+		echo "  waiting for CSV to be removed..."; \
+		sleep 2; \
+	done
+	@echo "Removing bpfman ClusterRoleBindings..."
+	kubectl delete clusterrolebinding bpfman-agent-rolebinding bpfman-auth-delegator --ignore-not-found
+	@echo "Removing bpfman ClusterRoles..."
+	kubectl delete clusterrole bpfman-agent-role bpfman-bpfapplication-editor-role bpfman-bpfapplication-viewer-role bpfman-clusterbpfapplication-editor-role bpfman-clusterbpfapplication-viewer-role bpfman-metrics-reader --ignore-not-found
+	@echo "Removing bpfman CRDs..."
+	kubectl delete crd bpfapplications.bpfman.io bpfapplicationstates.bpfman.io clusterbpfapplications.bpfman.io clusterbpfapplicationstates.bpfman.io configs.bpfman.io --ignore-not-found
+	@echo "Removing remaining labelled resources..."
+	kubectl delete all -l app.kubernetes.io/created-by=bpfman-catalog-cli --all-namespaces --ignore-not-found
 	kubectl delete imagedigestmirrorset -l app.kubernetes.io/created-by=bpfman-catalog-cli --ignore-not-found
 	kubectl delete namespace -l app.kubernetes.io/created-by=bpfman-catalog-cli --ignore-not-found
 
