@@ -3468,6 +3468,11 @@ properties:
     group: bpfman.io
     kind: ClusterBpfApplicationState
     version: v1alpha1
+- type: olm.gvk
+  value:
+    group: bpfman.io
+    kind: Config
+    version: v1alpha1
 - type: olm.package
   value:
     packageName: bpfman-operator
@@ -4462,12 +4467,32 @@ properties:
               ],
               "updateCount": 2
             }
+          },
+          {
+            "apiVersion": "bpfman.io/v1alpha1",
+            "kind": "Config",
+            "metadata": {
+              "name": "bpfman-config"
+            },
+            "spec": {
+              "agent": {
+                "healthProbePort": 8175,
+                "image": "quay.io/bpfman/bpfman-agent:latest",
+                "logLevel": "info"
+              },
+              "configuration": "[database]\nmax_retries = 30\nmillisec_delay = 10000\n[signing]\nallow_unsigned = true\nverify_enabled = true\n",
+              "daemon": {
+                "image": "quay.io/bpfman/bpfman:latest",
+                "logLevel": "info"
+              },
+              "namespace": "bpfman"
+            }
           }
         ]
       capabilities: Basic Install
       categories: OpenShift Optional
-      containerImage: registry.redhat.io/bpfman/bpfman-rhel9-operator@sha256:312a0246b3b2c94ce59a4faaeb69c2926a1664eb300241d5b6e09efbd73ffd64
-      createdAt: 17 Dec 2025, 11:33
+      containerImage: registry.redhat.io/bpfman/bpfman-rhel9-operator@sha256:f4f462bd394bda9aa65e547d8ef2e8c08fa867ace49dd660c542590ada9b6b2e
+      createdAt: 01 Apr 2026, 12:29
       description: The eBPF manager Operator is designed to manage eBPF programs for
         applications.
       features.operators.openshift.io/cnf: "false"
@@ -4491,9 +4516,6 @@ properties:
               "pod-security.kubernetes.io/enforce": "privileged",
               "pod-security.kubernetes.io/audit": "privileged",
               "pod-security.kubernetes.io/warn": "privileged",
-            },
-            "annotations": {
-              "openshift.io/node-selector": ""
             },
           }
         }
@@ -4529,6 +4551,11 @@ properties:
         displayName: Cluster Bpf Application State
         kind: ClusterBpfApplicationState
         name: clusterbpfapplicationstates.bpfman.io
+        version: v1alpha1
+      - description: Config is the Schema for the bpfman operator configuration API
+        displayName: Bpfman Config
+        kind: Config
+        name: configs.bpfman.io
         version: v1alpha1
     description: "The eBPF manager Operator is a Kubernetes Operator for deploying
       [bpfman](https://github.com/openshift/bpfman-operator), a system daemon\nfor
@@ -4582,6 +4609,6 @@ properties:
 relatedImages:
 - image: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator-bundle-ystream:latest
   name: ""
-- image: registry.redhat.io/bpfman/bpfman-rhel9-operator@sha256:312a0246b3b2c94ce59a4faaeb69c2926a1664eb300241d5b6e09efbd73ffd64
+- image: registry.redhat.io/bpfman/bpfman-rhel9-operator@sha256:f4f462bd394bda9aa65e547d8ef2e8c08fa867ace49dd660c542590ada9b6b2e
   name: ""
 schema: olm.bundle
