@@ -5,7 +5,7 @@ metadata:
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  image: quay.io/bpfman/bpfman-operator-catalog:latest
+  image: quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest
   displayName: BPFMan development catalog
   publisher: Me
   updateStrategy:
